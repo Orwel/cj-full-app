@@ -55,14 +55,18 @@ GET /api/v2/Proceso/Actuaciones/{idProceso}?pagina={n}
 
 ---
 
-## 3. Optimización del job diario
+## 3. Optimización del sync por caso
+
+Por cada trabajo `full_sync` en cola (un caso):
 
 1. **GET** `NumeroRadicacion` para el radicado del caso.
 2. Comparar `fechaUltimaActuacion` (fecha del API) con `casos.fecha_ultima_actuacion_remota`.
-3. Si son **iguales** → registrar log `no_changes` y **no** llamar a `Actuaciones`.
+3. Si son **iguales** → registrar log `no_changes`, **recalcular** severidad/alertas (el plazo sigue corriendo) y **no** llamar a `Actuaciones`.
 4. Si **cambió** → **GET** `Actuaciones` (todas las páginas hasta `cantidadPaginas`), insertar solo `id_reg_actuacion` nuevos, ejecutar alertas, actualizar `fecha_ultima_actuacion_remota` y `fecha_ultimo_scraping`.
 
-Al **registrar** caso nuevo: llamar `Detalle` + `Actuaciones` al menos una vez (y opcionalmente no repetir `Detalle` en cada cron si los datos estáticos no requieren refresco diario).
+Trabajos `recalc_only` en cola: solo recálculo de severidad/alertas/`estado_critico` **sin** llamar a la Rama (garantía si la API judicial falla).
+
+Al **registrar** caso nuevo: sincronizar on-demand desde la UI o esperar al enqueue diario.
 
 ---
 
@@ -96,9 +100,21 @@ Al **registrar** caso nuevo: llamar `Detalle` + `Actuaciones` al menos una vez (
 
 ## 7. Seguridad operativa
 
-- Llamadas a la API judicial **solo desde servidor**: en el MVP el **job recurrente corre en Supabase** (p. ej. Edge Function programada con `fetch` a la Rama y cliente Supabase con **service role** para escribir en DB). La UI puede disparar **on-demand** vía Next (Server Action / Route Handler) con el usuario autenticado y RLS, sin exponer la API judicial al navegador.
-- Si el job se invoca por HTTP interno (`pg_net` → Edge Function), proteger con **secret** en cabecera o mecanismo recomendado por Supabase; no usar un cron en Vercel como único planificador.
-- No loguear cuerpos JSON completos en producción si contienen datos personales; truncar en debug.
+- Llamadas a la API judicial **solo desde servidor**: jobs en **Supabase Edge Functions** con **service role**; la UI sincroniza on-demand vía Next (Server Action) con usuario autenticado.
+- Todas las funciones programadas exigen `Authorization: Bearer CRON_SECRET` (`verify_jwt = false` en [`supabase/config.toml`](../supabase/config.toml)).
+- No usar cron en Vercel como planificador principal.
+- No loguear cuerpos JSON completos en producción si contienen datos personales.
+
+**Edge Functions:**
+
+| Función | Rol |
+|---------|-----|
+| `sync-judicial-casos` | Solo encola (`enqueue_daily_sync_jobs`); compatibilidad cron antiguo |
+| `sync-tick` | Reclama cola y dispara `sync-one-caso` (respuesta &lt; 5 s) |
+| `sync-one-caso` | Un caso: `full_sync` o `recalc_only` |
+| `health-check` | Alarma de salud por correo a admins |
+
+**Secrets Supabase:** `CRON_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_PUBLIC_URL`, opcional `HEALTH_STALE_HOURS`, `HEALTH_UNREAD_CRITICAL_HOURS`, `ADMIN_ALERT_EMAIL`.
 
 ---
 
@@ -121,4 +137,44 @@ Si la API deja de ser accesible desde la red de salida del entorno donde corre e
 
 ## 10. Referencia de implementación en repo
 
-- Tipos y cliente: `src/infrastructure/scraping/types.ts`, `src/infrastructure/scraping/RamaJudicialClient.ts`
+- Tipos y cliente (Next): `src/infrastructure/scraping/types.ts`, `src/infrastructure/scraping/RamaJudicialClient.ts`
+- Edge compartido: `supabase/functions/_shared/`
+- Cola SQL: `supabase/migrations/00006_sync_queue.sql`, snippet `supabase/sql/enqueue_daily.sql`
+
+---
+
+## 11. Arquitectura de cola y crons (fiabilidad)
+
+```text
+enqueue_daily (SQL, 10:00 UTC)
+  → sync_queue: full_sync + recalc_only por caso activo
+
+sync-tick (HTTP cada 2 min, timeout panel 5000 ms OK)
+  → claim_sync_queue(5)
+  → POST sync-one-caso por fila (fire-and-forget)
+
+sync-one-caso
+  → Rama (si full_sync) + recompute + scraping_logs
+  → sync_queue done | failed + backoff
+
+health-check (HTTP diario)
+  → email admins si casos stale o críticas sin leer
+```
+
+### Crons recomendados (Integrations → Cron)
+
+| Nombre | Tipo | Schedule (UTC) | Target |
+|--------|------|----------------|--------|
+| `enqueue-daily` | SQL Snippet | `0 10 * * *` | `select enqueue_daily_sync_jobs();` |
+| `sync-tick` | HTTP POST | `*/2 * * * *` | `.../functions/v1/sync-tick` + Bearer `CRON_SECRET` |
+| `health-check` | HTTP POST | `0 13 * * *` | `.../functions/v1/health-check` + Bearer |
+
+Timeout HTTP del cron de Supabase: **máx. 5000 ms** en el panel. `sync-tick` solo encola invocaciones y responde al instante; el trabajo pesado ocurre en `sync-one-caso` (límite Edge ~150 s en plan Free).
+
+### Reintentos (cola)
+
+Backoff tras fallo transitorio: 5 min → 30 min → 2 h → 6 h → 24 h. Errores permanentes (`invalid_format`, `not_found`) no reintentan.
+
+### Deuda técnica
+
+Reglas de severidad duplicadas en `src/domain/services/alert-severity.ts` y `supabase/functions/_shared/severidad.ts`; mantener alineadas al cambiar patrones o plazos.

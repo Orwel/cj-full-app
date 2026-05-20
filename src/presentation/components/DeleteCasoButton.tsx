@@ -1,6 +1,7 @@
 'use client'
 
-import { useFormState, useFormStatus } from 'react-dom'
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { deleteCasoAction } from '@/app/(dashboard)/dashboard/casos/caso-actions'
 
 function PendingLabel() {
@@ -9,7 +10,7 @@ function PendingLabel() {
 }
 
 export function DeleteCasoButton({ casoId }: { casoId: string }) {
-  const [state, action] = useFormState(deleteCasoAction, null)
+  const [state, action] = useActionState(deleteCasoAction, null)
 
   return (
     <form action={action} className="flex flex-col items-stretch gap-2 sm:items-end">

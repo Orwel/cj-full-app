@@ -48,8 +48,15 @@ La dependencia fluye hacia `domain`. Las implementaciones se **inyectan** en los
 │       ├── components/
 │       └── README.md
 ├── supabase/
-│   └── migrations/
-│       └── 00001_initial_schema.sql
+│   ├── migrations/              ← 00001 … 00006
+│   ├── functions/
+│   │   ├── _shared/             ← lógica judicial + cola + Resend (Deno)
+│   │   ├── sync-tick/
+│   │   ├── sync-one-caso/
+│   │   ├── health-check/
+│   │   └── sync-judicial-casos/ ← solo encola (legacy cron URL)
+│   ├── sql/enqueue_daily.sql
+│   └── config.toml
 ├── .env.local.example
 └── README.md
 ```
@@ -78,3 +85,11 @@ Preferir un **composition root** (`src/infrastructure/di.ts` o similar) que cons
 ## Migraciones
 
 Versionadas en `supabase/migrations/`. Esquema canónico descrito en [DATABASE.md](./DATABASE.md).
+
+### Jobs judiciales (Edge + cola)
+
+- **On-demand:** `SincronizarCasoJudicialUseCase` (Next, service role) — sin cola.
+- **Automático:** `enqueue_daily_sync_jobs` → `sync-tick` → `sync-one-caso` por fila en `sync_queue`.
+- **Salud:** `health-check` → correo a admins vía Resend.
+
+**Deuda técnica:** reglas de severidad en `src/domain/services/alert-severity.ts` y `supabase/functions/_shared/severidad.ts`; mantener sincronizadas.

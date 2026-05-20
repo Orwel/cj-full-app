@@ -2,8 +2,8 @@
 
 **Leyenda:** `[x]` hecho · `[ ]` pendiente · `[~]` en curso (opcional)
 
-**Última revisión:** 2026-05-11  
-**Alineado con:** [SPEC.md](./SPEC.md) (fases 0–5)
+**Última revisión:** 2026-05-19  
+**Alineado con:** [SPEC.md](./SPEC.md) (fases 0–5 + fiabilidad operativa)
 
 Al cerrar trabajo, cambiar `[ ]` → `[x]`. Opcional: añadir al final una sección **Changelog** con fecha y PR.
 
@@ -57,23 +57,25 @@ Al cerrar trabajo, cambiar `[ ]` → `[x]`. Opcional: añadir al final una secci
 
 **Objetivo:** Severidad `max(plazo, patrón)` y experiencia en el dashboard.
 
-- [ ] Cálculo por plazo (días hábiles Colombia; MVP puede arrancar con días corridos y refinar)
-- [ ] Patrones en texto de actuación / anotación (lista viva en código)
-- [ ] Inserción o actualización de `alertas` y severidad en `actuaciones`
-- [ ] UI de alertas y marcar como leída (coherente con RLS)
-- [ ] Campo `estado_critico` en `casos` (derivado o actualizado tras sync / job)
+- [x] Cálculo por plazo (días hábiles Colombia; MVP puede arrancar con días corridos y refinar)
+- [x] Patrones en texto de actuación / anotación (lista viva en código)
+- [x] Inserción o actualización de `alertas` y severidad en `actuaciones`
+- [x] UI de alertas y marcar como leída (coherente con RLS)
+- [x] Campo `estado_critico` en `casos` (derivado o actualizado tras sync / job)
 
 ---
 
 ## Sprint 4 — Automatización (solo Supabase)
 
-**Objetivo:** Job diario programado y ejecutado en Supabase, sin cron en Vercel.
+**Objetivo:** Job programado en Supabase, sin cron en Vercel.
 
-- [ ] Worker (p. ej. **Edge Function**) con `fetch` a la API judicial y escritura con **service role**
-- [ ] Programación: Scheduled Edge Functions y/o `pg_cron` (y `pg_net` si aplica al diseño)
-- [ ] Optimización: comparar `fechaUltimaActuacion` con `fecha_ultima_actuacion_remota` antes de paginar actuaciones
-- [ ] Reintentos con backoff, pausa entre radicados, timeouts
-- [ ] Secretos del job únicamente en Supabase
+- [x] Worker Edge con `fetch` a la API judicial y escritura con **service role**
+- [x] `pg_cron` + `pg_net` habilitados; cron HTTP en Integrations → Cron
+- [x] Optimización `fechaUltimaActuacion` vs `fecha_ultima_actuacion_remota`
+- [x] Reintentos con backoff en cola (Sprint 6); batch monolítico sustituido
+- [x] Secretos del job en Supabase (`CRON_SECRET`, Resend opcional)
+
+**Nota:** El cron HTTP de Supabase limita el **timeout de espera** del cliente a **5000 ms**; el diseño por cola (`sync-tick` + `sync-one-caso`) evita ese cuello de botella. Ver [SCRAPING.md §11](./SCRAPING.md).
 
 ---
 
@@ -81,15 +83,34 @@ Al cerrar trabajo, cambiar `[ ]` → `[x]`. Opcional: añadir al final una secci
 
 **Objetivo:** Correo en alertas críticas y/o resumen diario.
 
-- [ ] Integración proveedor (p. ej. Resend) y plantillas mínimas
-- [ ] Disparo desde el job o tras creación de alertas relevantes
-- [ ] Controles básicos (no duplicar envíos innecesarios)
+- [x] Integración proveedor (Resend) y plantillas mínimas
+- [x] Disparo tras sync exitoso (estudiante) y alarma de salud (admin)
+- [x] Controles básicos (`email_sent_at`, idempotencia)
 
 ---
 
-## Changelog (ejemplo de uso)
+## Sprint 6 — Fiabilidad operativa
+
+**Objetivo:** Cola por caso, recálculo sin Rama, alarma de salud; escalar sin perder plazos.
+
+- [x] Migración `00006_sync_queue` + funciones `enqueue_daily_sync_jobs`, `claim_sync_queue`
+- [x] `_shared` unificado en `supabase/functions/_shared/`
+- [x] Edge Functions: `sync-one-caso`, `sync-tick`, `health-check`
+- [x] `sync-judicial-casos` deprecado → solo encola
+- [x] Jobs `recalc_only` en cola (plazos sin depender de la Rama)
+- [x] Documentación: [SCRAPING.md §11](./SCRAPING.md), [DATABASE.md §3.6](./DATABASE.md), crons recomendados
+- [x] `.env.local.example` + README operación
+- [ ] UI admin `/dashboard/admin/sync-queue` — *opcional*
+- [ ] Días hábiles Colombia en `alert-severity.ts` — *refinar*
+- [ ] Tests fixtures Sprint 2 / auth — *opcional*
+
+---
+
+## Changelog
 
 | Fecha | Cambio |
 |-------|--------|
 | 2026-05-11 | Creado `SPRINTS.md`; enlaces en `docs/README.md` y README raíz; guía primer admin en README; Sprint 0 y Sprint 1 al día según repo. |
-| 2026-05-11 | Sprint 2: `IJudicialConsultaService`, `SincronizarCasoJudicialUseCase`, service role para `actuaciones`/`scraping_logs`, botón sincronizar, `ActuacionesTable`, `.env.local.example`. Pendiente: tests con fixtures. |
+| 2026-05-11 | Sprint 2: `IJudicialConsultaService`, `SincronizarCasoJudicialUseCase`, service role, botón sincronizar, `ActuacionesTable`, `.env.local.example`. |
+| 2026-05-14 | Sprints 3–5: motor alertas, UI `/dashboard/alertas`, migraciones `00004`/`00005`, Edge `sync-judicial-casos`, Resend opcional. |
+| 2026-05-19 | Sprint 6: cola `sync_queue`, `sync-tick`/`sync-one-caso`/`health-check`, recálculo `recalc_only`, docs y crons actualizados. |

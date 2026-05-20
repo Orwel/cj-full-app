@@ -1,0 +1,14 @@
+# Configuración local de Supabase CLI (cron / JWT de Edge Functions)
+# https://supabase.com/docs/guides/functions/function-configuration
+
+[functions.sync-judicial-casos]
+verify_jwt = false
+
+[functions.sync-one-caso]
+verify_jwt = false
+
+[functions.sync-tick]
+verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false

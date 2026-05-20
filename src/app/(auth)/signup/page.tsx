@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/presentation/components/ui/Button'
+import { Input, Label } from '@/presentation/components/ui/Input'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -23,9 +25,7 @@ export default function SignupPage() {
     const { data, error: signError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName },
-      },
+      options: { data: { full_name: fullName } },
     })
     setLoading(false)
     if (signError) {
@@ -44,44 +44,35 @@ export default function SignupPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-slate-900">Crear cuenta</h1>
-      <p className="mt-1 text-sm text-slate-600">Rol por defecto: estudiante</p>
+      <h1 className="text-xl font-bold text-app-text">Crear cuenta</h1>
+      <p className="mt-1 text-sm text-app-secondary">Rol por defecto: estudiante</p>
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Nombre completo
-          </label>
-          <input
+          <Label>Nombre completo</Label>
+          <Input
             type="text"
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-600 focus:ring-2"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Correo
-          </label>
-          <input
+          <Label>Correo</Label>
+          <Input
             type="email"
             autoComplete="email"
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-600 focus:ring-2"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Contraseña
-          </label>
-          <input
+          <Label>Contraseña</Label>
+          <Input
             type="password"
             autoComplete="new-password"
             required
             minLength={6}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-600 focus:ring-2"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -92,21 +83,17 @@ export default function SignupPage() {
           </p>
         )}
         {info && (
-          <p className="text-sm text-slate-700" role="status">
+          <p className="text-sm text-app-secondary" role="status">
             {info}
           </p>
         )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={loading} className="w-full py-2.5">
           {loading ? 'Creando…' : 'Registrarse'}
-        </button>
+        </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-app-secondary">
         ¿Ya tienes cuenta?{' '}
-        <Link href="/login" className="font-medium text-blue-700 hover:underline">
+        <Link href="/login" className="font-medium text-brand-700 hover:underline">
           Iniciar sesión
         </Link>
       </p>

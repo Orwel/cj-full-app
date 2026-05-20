@@ -4,6 +4,7 @@ node_modules/
 # Next.js
 .next/
 out/
+*.tsbuildinfo
 
 # Env
 .env
@@ -11,6 +12,7 @@ out/
 .env.*.local
 
 # Debug / OS
+.cursor/debug-*.log
 npm-debug.log*
 .DS_Store
 Thumbs.db

@@ -9,6 +9,7 @@ import { CasoJudicialSyncRepository } from '@/infrastructure/database/supabase/c
 import { RamaJudicialConsultaService } from '@/infrastructure/scraping/rama-judicial-consulta.service'
 import { createCasosContext } from '@/infrastructure/di'
 import { getMyProfile, getSessionUser } from '@/lib/auth/session'
+import { sendPendingAlertEmailsResend } from '@/infrastructure/notifications/resend-critical-alerts'
 import { createServiceRoleClient } from '@/lib/supabase/admin'
 export async function sincronizarCasoJudicialAction(
   casoId: string,
@@ -51,7 +52,23 @@ export async function sincronizarCasoJudicialAction(
     if (result.ok) {
       revalidatePath('/dashboard/casos')
       revalidatePath(`/dashboard/casos/${casoId}`)
+      revalidatePath(`/dashboard/casos/${casoId}/editar`)
       revalidatePath('/dashboard')
+      revalidatePath('/dashboard/alertas')
+
+      const resendKey = process.env.RESEND_API_KEY
+      const resendFrom = process.env.RESEND_FROM_EMAIL
+      if (resendKey && resendFrom) {
+        try {
+          await sendPendingAlertEmailsResend(admin, {
+            apiKey: resendKey,
+            from: resendFrom,
+            appBaseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          })
+        } catch {
+          /* no bloquear sync si el correo falla */
+        }
+      }
     }
 
     return result

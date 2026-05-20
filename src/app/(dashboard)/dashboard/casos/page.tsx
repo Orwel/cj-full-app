@@ -2,14 +2,17 @@ import Link from 'next/link'
 import { createCasosContext } from '@/infrastructure/di'
 import { getMyProfile, listStudentProfiles } from '@/lib/auth/session'
 import type { Area } from '@/domain/entities/caso'
-
-const areaLabels: Record<Area, string> = {
-  civil: 'Civil',
-  laboral: 'Laboral',
-  penal: 'Penal',
-  familia: 'Familia',
-  administrativo: 'Administrativo',
-}
+import { areaLabels, formatDateTimeCo } from '@/lib/labels'
+import { parseSujetosProcesales } from '@/lib/sujetos-procesales'
+import { Button } from '@/presentation/components/ui/Button'
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableShell,
+  Td,
+  Th,
+} from '@/presentation/components/ui/Table'
 
 export default async function CasosListPage({
   searchParams,
@@ -43,27 +46,22 @@ export default async function CasosListPage({
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Casos</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <h1 className="text-2xl font-bold text-app-text">Casos</h1>
+          <p className="mt-1 text-sm text-app-secondary">
             {isAdmin
               ? 'Todos los casos del consultorio'
               : 'Tus casos asignados'}
           </p>
         </div>
-        <Link
-          href="/dashboard/casos/new"
-          className="inline-flex justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
-        >
-          Nuevo caso
-        </Link>
+        <Button href="/dashboard/casos/new">Nuevo caso</Button>
       </div>
 
       {isAdmin && (
         <div className="mt-6 flex flex-wrap gap-2 text-sm">
-          <span className="self-center text-slate-500">Área:</span>
+          <span className="self-center text-app-muted-text">Área:</span>
           <Link
             href="/dashboard/casos"
-            className={`rounded-full px-3 py-1 ${!areaFilter ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'}`}
+            className={`rounded-full px-3 py-1 ${!areaFilter ? 'bg-brand-700 text-white' : 'bg-slate-100 text-app-secondary hover:bg-slate-200'}`}
           >
             Todas
           </Link>
@@ -71,7 +69,7 @@ export default async function CasosListPage({
             <Link
               key={a}
               href={`/dashboard/casos?area=${a}`}
-              className={`rounded-full px-3 py-1 ${areaFilter === a ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'}`}
+              className={`rounded-full px-3 py-1 ${areaFilter === a ? 'bg-brand-700 text-white' : 'bg-slate-100 text-app-secondary hover:bg-slate-200'}`}
             >
               {areaLabels[a]}
             </Link>
@@ -79,60 +77,101 @@ export default async function CasosListPage({
         </div>
       )}
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+      <TableShell className="mt-8">
+        <Table>
+          <TableHead>
             <tr>
-              <th className="px-4 py-3 font-medium">Número</th>
-              <th className="px-4 py-3 font-medium">Radicado</th>
-              <th className="px-4 py-3 font-medium">Área</th>
-              {isAdmin && <th className="px-4 py-3 font-medium">Estudiante</th>}
-              <th className="px-4 py-3 font-medium" />
+              <Th>Número</Th>
+              <Th>Radicado</Th>
+              <Th>Demandante</Th>
+              <Th>Demandado</Th>
+              <Th>Despacho</Th>
+              <Th>Área</Th>
+              <Th>Última sync</Th>
+              {isAdmin && <Th>Estudiante</Th>}
+              <Th />
             </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+          </TableHead>
+          <TableBody>
             {casos.length === 0 ? (
               <tr>
                 <td
-                  colSpan={isAdmin ? 5 : 4}
+                  colSpan={isAdmin ? 9 : 8}
                   className="px-4 py-8 text-center text-slate-500"
                 >
                   No hay casos. Crea el primero.
                 </td>
               </tr>
             ) : (
-              casos.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50/80">
-                  <td className="px-4 py-3 font-medium text-slate-900">
+              casos.map((c) => {
+                const { demandante, demandado } = parseSujetosProcesales(
+                  c.sujetosProcesales,
+                )
+                return (
+                <tr key={c.id} className="hover:bg-slate-50">
+                  <Td className="font-medium">
                     {c.numeroCaso}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-slate-700">
+                    {c.estadoCritico && (
+                      <span className="ml-2 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-800">
+                        Crítico
+                      </span>
+                    )}
+                  </Td>
+                  <Td className="font-mono text-xs">
                     {c.radicadoJudicial}
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {areaLabels[c.area]}
-                  </td>
+                  </Td>
+                  <Td className="max-w-[10rem]">
+                    {demandante ? (
+                      <span className="line-clamp-2" title={demandante}>
+                        {demandante}
+                      </span>
+                    ) : null}
+                  </Td>
+                  <Td className="max-w-[10rem]">
+                    {demandado ? (
+                      <span className="line-clamp-2" title={demandado}>
+                        {demandado}
+                      </span>
+                    ) : null}
+                  </Td>
+                  <Td className="max-w-[12rem] text-app-secondary">
+                    <span className="line-clamp-2" title={c.despacho ?? undefined}>
+                      {c.despacho ?? '—'}
+                    </span>
+                  </Td>
+                  <Td>{areaLabels[c.area]}</Td>
+                  <Td className="text-xs text-app-secondary">
+                    {formatDateTimeCo(c.fechaUltimoScraping)}
+                  </Td>
                   {isAdmin && (
-                    <td className="px-4 py-3 text-slate-600">
+                    <Td className="text-app-secondary">
                       {c.studentId
                         ? (studentNameById[c.studentId] ?? c.studentId.slice(0, 8) + '…')
                         : '—'}
-                    </td>
+                    </Td>
                   )}
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/casos/${c.id}`}
-                      className="font-medium text-blue-700 hover:underline"
-                    >
-                      Ver / editar
-                    </Link>
-                  </td>
+                  <Td className="text-right">
+                    <div className="flex justify-end gap-3">
+                      <Link
+                        href={`/dashboard/casos/${c.id}`}
+                        className="font-medium text-brand-700 hover:underline"
+                      >
+                        Ver
+                      </Link>
+                      <Link
+                        href={`/dashboard/casos/${c.id}/editar`}
+                        className="font-medium text-slate-600 hover:underline"
+                      >
+                        Editar
+                      </Link>
+                    </div>
+                  </Td>
                 </tr>
-              ))
+              )})
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableShell>
     </div>
   )
 }

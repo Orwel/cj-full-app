@@ -78,6 +78,7 @@ export class SincronizarCasoJudicialUseCase {
         await this.sync.updateCaso(caso.id, {
           fecha_ultimo_scraping: new Date().toISOString(),
         })
+        await this.sync.recomputeSeverityAlertsAndEstadoCritico(caso.id)
         await finishLog('no_changes', 0, null)
         return { ok: true, status: 'no_changes', actuacionesNuevas: 0 }
       }
@@ -129,6 +130,7 @@ export class SincronizarCasoJudicialUseCase {
       })
 
       const insertadas = await this.sync.insertActuaciones(caso.id, nuevas)
+      await this.sync.recomputeSeverityAlertsAndEstadoCritico(caso.id)
       await finishLog('success', insertadas, null)
 
       return { ok: true, status: 'success', actuacionesNuevas: insertadas }

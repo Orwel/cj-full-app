@@ -21,8 +21,14 @@ Aplicación para monitorear procesos de la **Rama Judicial de Colombia** por **n
 
 ## Base de datos
 
-- [00001_initial_schema.sql](./supabase/migrations/00001_initial_schema.sql) — tablas y RLS
-- [00002_auth_profile_trigger.sql](./supabase/migrations/00002_auth_profile_trigger.sql) — perfil al registrarse (rol `student`)
+Migraciones en `supabase/migrations/` (aplicar en orden hasta `00006_sync_queue.sql`):
+
+- `00001` — esquema inicial y RLS
+- `00002` — trigger perfil al registrarse
+- `00003` — RLS profiles sin recursión
+- `00004` — `email_sent_at` en alertas
+- `00005` — constraint upsert alertas
+- `00006` — cola `sync_queue` + funciones enqueue/claim
 
 ## Estructura del código
 
@@ -38,10 +44,18 @@ set role = 'admin'
 where email = 'tu-correo@ejemplo.com';
 ```
 
-## Próximo paso
+## Operación en producción (jobs Supabase)
 
-Seguir [docs/SPRINTS.md](./docs/SPRINTS.md): Sprint 3 (motor de alertas y UI). La sincronización on-demand con la Rama ya está en la ficha de cada caso (`Sincronizar con Rama Judicial`).
+1. Aplicar migraciones (incl. `00006_sync_queue.sql`).
+2. Desplegar Edge Functions: `sync-tick`, `sync-one-caso`, `health-check`, `sync-judicial-casos` (solo encola).
+3. Secrets en Supabase: `CRON_SECRET`, opcional `RESEND_*`, `APP_PUBLIC_URL`, `HEALTH_STALE_HOURS`, `ADMIN_ALERT_EMAIL`.
+4. Crons en **Integrations → Cron** (ver [docs/SCRAPING.md §11](./docs/SCRAPING.md)):
+   - SQL diario: `select enqueue_daily_sync_jobs();`
+   - HTTP cada 2 min: `POST .../sync-tick` con `Authorization: Bearer CRON_SECRET`
+   - HTTP diario: `POST .../health-check` con el mismo Bearer
+
+La sincronización manual sigue en la ficha del caso («Sincronizar con Rama Judicial»).
 
 ## Variables de entorno
 
-Configurar `.env.local` (ver [.env.local.example](./.env.local.example)): `NEXT_PUBLIC_SUPABASE_*` para la app, y **`SUPABASE_SERVICE_ROLE_KEY`** solo en el servidor para la acción «Sincronizar con Rama Judicial» (escritura de `actuaciones` y `scraping_logs`). La URL de la Rama Judicial **no** va en env (constante en código). El **cron recurrente** y sus secrets se configuran **en Supabase** (Edge Function programada, etc.), no en Vercel.
+Configurar `.env.local` (ver [.env.local.example](./.env.local.example)): `NEXT_PUBLIC_SUPABASE_*` para la app, y **`SUPABASE_SERVICE_ROLE_KEY`** solo en el servidor para sincronizar. La URL de la Rama Judicial **no** va en env (constante en código). Crons y secrets de Edge Functions van en **Supabase**, no en Vercel.

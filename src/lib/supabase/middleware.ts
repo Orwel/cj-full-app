@@ -49,32 +49,7 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user: mwUser },
-  } = await supabase.auth.getUser()
-
-  // #region agent log
-  const path = request.nextUrl.pathname
-  fetch('http://127.0.0.1:7716/ingest/ab1c510c-a543-42c1-965f-0afd9b8e866a', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '66ba1e',
-    },
-    body: JSON.stringify({
-      sessionId: '66ba1e',
-      hypothesisId: 'H4',
-      location: 'middleware.ts:afterGetUser',
-      message: 'middleware auth',
-      data: {
-        path,
-        hasUser: Boolean(mwUser),
-        userIdLen: mwUser?.id?.length ?? 0,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }

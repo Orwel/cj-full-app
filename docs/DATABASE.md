@@ -137,6 +137,35 @@ Complemento de [SPEC.md](./SPEC.md). Alineado con la **API real** de consulta pr
 
 ---
 
+### 3.6 `sync_queue`
+
+Cola de trabajos de sincronización (un registro por caso, día y tipo de job).
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `id` | `uuid` PK | |
+| `caso_id` | `uuid` FK → `casos` | `ON DELETE CASCADE` |
+| `scheduled_date` | `date` | Día del lote (default `current_date`) |
+| `job_type` | `text` | `full_sync` \| `recalc_only` |
+| `status` | `text` | `pending` \| `running` \| `done` \| `failed` |
+| `attempts` | `int` | Reintentos consumidos |
+| `max_attempts` | `int` | default `5` |
+| `next_attempt_at` | `timestamptz` | Backoff entre reintentos |
+| `last_error` | `text` | Último mensaje de error |
+| `locked_at` | `timestamptz` | Claim del worker |
+| `created_at` / `updated_at` | `timestamptz` | |
+
+**UNIQUE:** `(caso_id, scheduled_date, job_type)`.
+
+**Funciones SQL (service role):**
+
+- `enqueue_daily_sync_jobs()` — encola `full_sync` + `recalc_only` para casos con `scraping_activo`.
+- `claim_sync_queue(p_limit)` — reclama filas `pending`/`failed` con `FOR UPDATE SKIP LOCKED`.
+
+**RLS:** lectura solo admin; escritura vía service role (Edge Functions).
+
+---
+
 ## 4. Row Level Security (RLS)
 
 Políticas mínimas (detalle en migración):
@@ -145,6 +174,7 @@ Políticas mínimas (detalle en migración):
 2. **`casos`:** estudiante `SELECT`/`UPDATE` donde `student_id = auth.uid()`; admin `ALL` (o `SELECT` global + políticas de escritura según producto).
 3. **`actuaciones` / `alertas`:** acceso vía `EXISTS` al caso permitido para ese `auth.uid()`.
 4. **`scraping_logs`:** lectura admin; inserción preferible con **service role** desde el worker de scraping (p. ej. **Supabase Edge Function** del job programado), no desde el cliente.
+5. **`sync_queue`:** lectura admin; escritura y claim vía **service role** desde Edge Functions (`sync-tick`, `sync-one-caso`).
 
 ---
 

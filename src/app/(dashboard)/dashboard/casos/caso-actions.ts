@@ -142,6 +142,7 @@ export async function updateCasoAction(
 
   revalidatePath('/dashboard/casos')
   revalidatePath(`/dashboard/casos/${casoId}`)
+  revalidatePath(`/dashboard/casos/${casoId}/editar`)
   return { success: true }
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
-import { useFormState, useFormStatus } from 'react-dom'
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
 import type { Area, Caso } from '@/domain/entities/caso'
 import { AREAS } from '@/domain/entities/caso'
 import type { Profile } from '@/lib/auth/session'
@@ -28,7 +29,7 @@ type Props = {
 }
 
 export function CasoForm({ mode, action, isAdmin, students, initial }: Props) {
-  const [state, formAction] = useFormState(action, null)
+  const [state, formAction] = useActionState(action, null)
 
   return (
     <form action={formAction} className="max-w-lg space-y-4">

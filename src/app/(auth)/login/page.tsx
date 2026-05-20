@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/presentation/components/ui/Button'
+import { Input, Label } from '@/presentation/components/ui/Input'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -26,57 +28,33 @@ export default function LoginPage() {
       setError(signError.message)
       return
     }
-    // #region agent log
-    const { data: sessWrap } = await supabase.auth.getSession()
-    fetch('http://127.0.0.1:7716/ingest/ab1c510c-a543-42c1-965f-0afd9b8e866a', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '66ba1e',
-      },
-      body: JSON.stringify({
-        sessionId: '66ba1e',
-        hypothesisId: 'H1',
-        location: 'login/page.tsx:afterSignIn',
-        message: 'client session after signIn',
-        data: { hasSession: Boolean(sessWrap.session), userIdLen: sessWrap.session?.user?.id?.length ?? 0 },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     router.push('/dashboard')
     router.refresh()
   }
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-slate-900">Iniciar sesión</h1>
-      <p className="mt-1 text-sm text-slate-600">
+      <h1 className="text-xl font-bold text-app-text">Iniciar sesión</h1>
+      <p className="mt-1 text-sm text-app-secondary">
         Consultorio — monitoreo judicial
       </p>
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Correo
-          </label>
-          <input
+          <Label>Correo</Label>
+          <Input
             type="email"
             autoComplete="email"
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-600 focus:ring-2"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Contraseña
-          </label>
-          <input
+          <Label>Contraseña</Label>
+          <Input
             type="password"
             autoComplete="current-password"
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-600 focus:ring-2"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -86,17 +64,13 @@ export default function LoginPage() {
             {error}
           </p>
         )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={loading} className="w-full py-2.5">
           {loading ? 'Entrando…' : 'Entrar'}
-        </button>
+        </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-app-secondary">
         ¿Sin cuenta?{' '}
-        <Link href="/signup" className="font-medium text-blue-700 hover:underline">
+        <Link href="/signup" className="font-medium text-brand-700 hover:underline">
           Registrarse
         </Link>
       </p>

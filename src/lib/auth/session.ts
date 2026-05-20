@@ -29,28 +29,6 @@ export async function getMyProfile(): Promise<Profile | null> {
     .eq('id', user.id)
     .maybeSingle()
 
-  // #region agent log
-  fetch('http://127.0.0.1:7716/ingest/ab1c510c-a543-42c1-965f-0afd9b8e866a', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '66ba1e',
-    },
-    body: JSON.stringify({
-      sessionId: '66ba1e',
-      hypothesisId: 'H3b',
-      location: 'session.ts:getMyProfile',
-      message: 'profiles query',
-      data: {
-        hasRow: Boolean(data),
-        errCode: error?.code ?? null,
-        errHint: error?.hint ? true : false,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-
   if (error || !data) return null
   return data as Profile
 }
