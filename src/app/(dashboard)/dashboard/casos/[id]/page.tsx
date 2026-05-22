@@ -6,7 +6,8 @@ import { areaLabels, formatDateTimeCo, formatFechaCo } from '@/lib/labels'
 import { parseSujetosProcesales } from '@/lib/sujetos-procesales'
 import { ActuacionesTable } from '@/presentation/components/ActuacionesTable'
 import { CasoJudicialSummary } from '@/presentation/components/CasoJudicialSummary'
-import { SyncCasoJudicialButton } from '@/presentation/components/SyncCasoJudicialButton'
+import { CasoNotificacionesActions } from '@/presentation/components/CasoNotificacionesActions'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function VerCasoPage({
   params,
@@ -22,6 +23,31 @@ export default async function VerCasoPage({
   if (!caso) notFound()
 
   const sujetos = parseSujetosProcesales(caso.sujetosProcesales)
+  const isAdmin = profile.role === 'admin'
+  const isOwner = caso.studentId === profile.id
+  const supabase = await createClient()
+
+  let adminSubscribed = false
+  if (isAdmin) {
+    const { data: sub } = await supabase
+      .from('caso_suscriptores')
+      .select('caso_id')
+      .eq('caso_id', id)
+      .eq('profile_id', profile.id)
+      .maybeSingle()
+    adminSubscribed = !!sub
+  }
+
+  let ownerHasTelegram: boolean | undefined
+  if (isOwner && caso.studentId) {
+    const { data: ownerProfile } = await supabase
+      .from('profiles')
+      .select('telegram_chat_id')
+      .eq('id', caso.studentId)
+      .maybeSingle()
+    ownerHasTelegram = ownerProfile?.telegram_chat_id != null
+  }
+
   return (
     <div>
       <Link
@@ -31,10 +57,10 @@ export default async function VerCasoPage({
         ← Volver a casos
       </Link>
 
-      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">{caso.numeroCaso}</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Expediente</h1>
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Expediente</h1>
           <p className="mt-1 font-mono text-sm text-slate-700">{caso.radicadoJudicial}</p>
           {sujetos.demandante && (
             <p className="mt-2 text-sm text-slate-800">
@@ -68,21 +94,13 @@ export default async function VerCasoPage({
             {formatFechaCo(caso.fechaUltimaActuacionRemota)}
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:items-end">
-          <SyncCasoJudicialButton casoId={caso.id} />
-          <Link
-            href={`/dashboard/casos/${caso.id}/editar`}
-            className="inline-flex justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-          >
-            Editar datos del consultorio
-          </Link>
-          <Link
-            href={`/dashboard/alertas?pendientes=1`}
-            className="text-center text-sm text-blue-700 hover:underline"
-          >
-            Ver alertas del consultorio
-          </Link>
-        </div>
+        <CasoNotificacionesActions
+          casoId={caso.id}
+          isAdmin={isAdmin}
+          isOwner={isOwner}
+          adminSubscribed={adminSubscribed}
+          ownerHasTelegram={ownerHasTelegram}
+        />
       </div>
 
       <CasoJudicialSummary caso={caso} />

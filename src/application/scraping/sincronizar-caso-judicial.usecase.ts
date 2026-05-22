@@ -9,8 +9,17 @@ import {
 
 const RADICADO_RE = /^[0-9]{23}$/
 
+import type { TelegramSyncInfo } from '@/lib/telegram/sync-hints'
+
+export type { TelegramSyncInfo }
+
 export type SincronizarCasoJudicialResult =
-  | { ok: true; status: 'success' | 'no_changes'; actuacionesNuevas: number }
+  | {
+      ok: true
+      status: 'success' | 'no_changes'
+      actuacionesNuevas: number
+      telegram?: TelegramSyncInfo
+    }
   | {
       ok: false
       status: 'invalid_format' | 'not_found' | 'error'

@@ -59,6 +59,9 @@ export function AppSidebar({
                 Alertas
               </SidebarNavLink>
             </li>
+            <li>
+              <SidebarNavLink href="/dashboard/perfil">Perfil</SidebarNavLink>
+            </li>
           </ul>
         </div>
 

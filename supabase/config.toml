@@ -12,3 +12,12 @@ verify_jwt = false
 
 [functions.health-check]
 verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.student-daily-digest]
+verify_jwt = false
+
+[functions.telegram-send-pending]
+verify_jwt = false

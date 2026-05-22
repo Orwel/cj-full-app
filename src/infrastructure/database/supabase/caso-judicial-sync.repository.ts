@@ -23,7 +23,7 @@ type ActuacionRow = {
 type AlertaExisting = {
   actuacion_id: string | null
   leida: boolean
-  email_sent_at: string | null
+  telegram_sent_at: string | null
 }
 
 function tituloYMensajeAlerta(
@@ -140,7 +140,7 @@ export class CasoJudicialSyncRepository {
 
     const { data: prevAlertas, error: e2 } = await this.admin
       .from('alertas')
-      .select('actuacion_id, leida, email_sent_at')
+      .select('actuacion_id, leida, telegram_sent_at')
       .eq('caso_id', casoId)
 
     if (e2) throw new Error(e2.message)
@@ -191,7 +191,7 @@ export class CasoJudicialSyncRepository {
           titulo,
           mensaje,
           leida: prev?.leida ?? false,
-          email_sent_at: prev?.email_sent_at ?? null,
+          telegram_sent_at: prev?.telegram_sent_at ?? null,
         },
         { onConflict: 'caso_id,actuacion_id' },
       )

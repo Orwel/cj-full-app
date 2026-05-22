@@ -22,7 +22,7 @@ export function SeverityAreaChart({ data }: { data: AlertaDayRow[] }) {
   }))
 
   return (
-    <Card variant="default" className="h-[320px]">
+    <Card variant="default" className="min-h-[280px] sm:h-[320px]">
       <h3 className="mb-4 text-sm font-bold text-app-text">
         Alertas por severidad (30 días)
       </h3>

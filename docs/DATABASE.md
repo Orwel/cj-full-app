@@ -31,6 +31,27 @@ Complemento de [SPEC.md](./SPEC.md). Alineado con la **API real** de consulta pr
 | `email` | `text` NOT NULL | |
 | `role` | `text` NOT NULL | `CHECK (role IN ('admin','student'))` |
 | `created_at` | `timestamptz` | default `now()` |
+| `telegram_chat_id` | `bigint` | ID de chat Telegram tras vincular |
+| `telegram_username` | `text` | `@username` en Telegram |
+| `telegram_link_code` | `text` | Código temporal para `/start` (30 min) |
+| `telegram_link_code_at` | `timestamptz` | Expiración del código |
+| `telegram_linked_at` | `timestamptz` | Fecha de vinculación |
+| `telegram_blocked_at` | `timestamptz` | Bot bloqueado por el usuario |
+| `last_telegram_digest_at` | `timestamptz` | Último resumen diario enviado |
+
+---
+
+### 3.1b `caso_suscriptores`
+
+Suscripción de un perfil (típicamente **admin**) a notificaciones Telegram de un caso.
+
+| Columna | Tipo | Notas |
+|---------|------|--------|
+| `caso_id` | `uuid` FK | PK compuesta |
+| `profile_id` | `uuid` FK → `profiles` | PK compuesta |
+| `created_at` | `timestamptz` | |
+
+RLS: lectura propia o admin; escritura solo admin.
 
 ---
 
@@ -119,6 +140,7 @@ Complemento de [SPEC.md](./SPEC.md). Alineado con la **API real** de consulta pr
 | `leida_por` | `uuid` FK → `profiles` | |
 | `leida_at` | `timestamptz` | |
 | `created_at` | `timestamptz` | |
+| `telegram_sent_at` | `timestamptz` | Envío inmediato Telegram (todas las severidades, agrupado por caso); idempotencia |
 
 ---
 

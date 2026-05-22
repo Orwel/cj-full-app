@@ -9,8 +9,6 @@ import {
   type AlertasFilterState,
 } from '@/presentation/components/AlertasFilters'
 import { MarcarTodasAlertasLeidasButton } from '@/presentation/components/MarcarTodasAlertasLeidasButton'
-import { getAlertasByDay } from '@/lib/analytics/alertas-by-day'
-import { SeverityAreaChart } from '@/presentation/components/charts/SeverityAreaChart'
 
 const ACTUACION_FIELDS = `
   id, cons_actuacion, fecha_actuacion, actuacion, anotacion,
@@ -96,20 +94,19 @@ export default async function AlertasPage({
   const sorted = sortAlertas(rows, filters.orden ?? 'reciente')
   const grupos = groupAlertasPorCaso(sorted)
   const pendientes = sorted.filter((r) => !r.leida).length
-  const alertasByDay = await getAlertasByDay(30)
 
   return (
     <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-app-text">Actualizaciones</h1>
+          <h1 className="text-xl font-bold text-app-text sm:text-2xl">Actualizaciones</h1>
           <p className="mt-1 max-w-2xl text-sm text-app-secondary">
             Cada actuación sincronizada de la Rama Judicial aparece aquí. La severidad solo
             resalta plazos y patrones; el orden sigue el consecutivo del expediente.{' '}
             {pendientes > 0 ? (
-              <span className="font-medium text-amber-400">{pendientes} sin leer</span>
+              <span className="font-medium text-amber-700">{pendientes} sin leer</span>
             ) : (
-              <span className="text-emerald-400">Todo leído</span>
+              <span className="text-emerald-700">Todo leído</span>
             )}
           </p>
         </div>
@@ -117,10 +114,6 @@ export default async function AlertasPage({
           count={pendientes}
           severidad={filters.severidad}
         />
-      </div>
-
-      <div className="mt-6">
-        <SeverityAreaChart data={alertasByDay} />
       </div>
 
       <div className="mt-6">

@@ -10,6 +10,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   estadisticas: 'Estadísticas',
   admin: 'Admin',
   operaciones: 'Operaciones',
+  perfil: 'Perfil',
   new: 'Nuevo',
   editar: 'Editar',
 }
@@ -29,9 +30,33 @@ export function AppHeader({ userName }: { userName: string }) {
     return { label: titleFromSegment(seg), href }
   })
 
+  const pageTitle = crumbs.length > 0 ? crumbs[crumbs.length - 1].label : 'Panel'
+  const parentCrumb = crumbs.length > 1 ? crumbs[crumbs.length - 2] : null
+
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-4 border-b border-app-border bg-app-surface px-4 md:px-8">
-      <nav className="flex min-w-0 flex-1 items-center gap-1 text-sm text-app-secondary">
+    <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-3 border-b border-app-border bg-app-surface/95 px-3 backdrop-blur-sm sm:h-14 md:px-8">
+      <nav
+        className="flex min-w-0 flex-1 items-center gap-1 text-sm text-app-secondary md:hidden"
+        aria-label="Ubicación"
+      >
+        {parentCrumb ? (
+          <>
+            <Link
+              href={parentCrumb.href}
+              className="shrink-0 font-medium text-brand-700 hover:text-brand-600"
+            >
+              ← {parentCrumb.label}
+            </Link>
+            <span className="text-app-muted-text">/</span>
+          </>
+        ) : null}
+        <span className="truncate font-semibold text-app-text">{pageTitle}</span>
+      </nav>
+
+      <nav
+        className="hidden min-w-0 flex-1 items-center gap-1 text-sm text-app-secondary md:flex"
+        aria-label="Migas de pan"
+      >
         {crumbs.map((c, i) => (
           <span key={c.href} className="flex items-center gap-1">
             {i > 0 && <span className="text-app-muted-text">/</span>}
@@ -45,7 +70,8 @@ export function AppHeader({ userName }: { userName: string }) {
           </span>
         ))}
       </nav>
-      <span className="hidden max-w-[12rem] truncate text-sm text-app-secondary sm:inline">
+
+      <span className="hidden max-w-[10rem] truncate text-sm text-app-secondary lg:inline">
         {userName}
       </span>
     </header>

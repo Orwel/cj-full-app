@@ -4,6 +4,7 @@ import { getMyProfile, listStudentProfiles } from '@/lib/auth/session'
 import type { Area } from '@/domain/entities/caso'
 import { areaLabels, formatDateTimeCo } from '@/lib/labels'
 import { parseSujetosProcesales } from '@/lib/sujetos-procesales'
+import { CasosMobileCards } from '@/presentation/components/CasosMobileCards'
 import { Button } from '@/presentation/components/ui/Button'
 import {
   Table,
@@ -46,14 +47,16 @@ export default async function CasosListPage({
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-app-text">Casos</h1>
+          <h1 className="text-xl font-bold text-app-text sm:text-2xl">Casos</h1>
           <p className="mt-1 text-sm text-app-secondary">
             {isAdmin
               ? 'Todos los casos del consultorio'
               : 'Tus casos asignados'}
           </p>
         </div>
-        <Button href="/dashboard/casos/new">Nuevo caso</Button>
+        <Button href="/dashboard/casos/new" className="w-full sm:w-auto">
+          Nuevo caso
+        </Button>
       </div>
 
       {isAdmin && (
@@ -77,7 +80,15 @@ export default async function CasosListPage({
         </div>
       )}
 
-      <TableShell className="mt-8">
+      <div className="mt-6 md:hidden">
+        <CasosMobileCards
+          casos={casos}
+          isAdmin={isAdmin}
+          studentNameById={studentNameById}
+        />
+      </div>
+
+      <TableShell className="mt-6 hidden md:block md:mt-8">
         <Table>
           <TableHead>
             <tr>

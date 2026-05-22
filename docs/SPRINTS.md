@@ -79,13 +79,29 @@ Al cerrar trabajo, cambiar `[ ]` → `[x]`. Opcional: añadir al final una secci
 
 ---
 
-## Sprint 5 — Notificaciones (opcional)
+## Sprint 5 — Notificaciones (Resend, sustituido)
 
-**Objetivo:** Correo en alertas críticas y/o resumen diario.
+**Objetivo:** ~~Correo~~ — reemplazado por Sprint 7 (Telegram).
 
-- [x] Integración proveedor (Resend) y plantillas mínimas
-- [x] Disparo tras sync exitoso (estudiante) y alarma de salud (admin)
-- [x] Controles básicos (`email_sent_at`, idempotencia)
+- [x] Integración Resend (histórico; retirado en `00007`)
+- [x] Disparo tras sync y health-check (histórico)
+
+---
+
+## Sprint 7 — Telegram + suscripciones admin
+
+**Objetivo:** Notificaciones gratuitas por Telegram; admins siguen casos puntuales.
+
+**Estado:** ✅ Implementación completada (2026-05-21). Smoke manual OK (vinculación + sync + mensaje agrupado).
+
+- [x] Migración `00007`: `profiles` (Telegram), `caso_suscriptores`, `telegram_sent_at`
+- [x] `_shared/telegram.ts`, `telegram-webhook`, `student-daily-digest`, `telegram-send-pending`
+- [x] `sync-one-caso` y `health-check` usan Telegram (sin Resend)
+- [x] Sync manual desde Next: todas las severidades, **un mensaje por caso**
+- [x] UI `/dashboard/perfil`, toggle suscripción en ficha de caso
+- [x] Documentación [TELEGRAM.md](./TELEGRAM.md), [INICIO_TELEGRAM.md](./INICIO_TELEGRAM.md)
+- [ ] **QA pendiente:** resumen automático vía cron `student-daily-digest` (`0 10 * * *` UTC = 5:00 Colombia)
+- [ ] **QA opcional:** `sync-tick` encola y `sync-one-caso` envía Telegram sin pulsar botón
 
 ---
 
@@ -114,3 +130,5 @@ Al cerrar trabajo, cambiar `[ ]` → `[x]`. Opcional: añadir al final una secci
 | 2026-05-11 | Sprint 2: `IJudicialConsultaService`, `SincronizarCasoJudicialUseCase`, service role, botón sincronizar, `ActuacionesTable`, `.env.local.example`. |
 | 2026-05-14 | Sprints 3–5: motor alertas, UI `/dashboard/alertas`, migraciones `00004`/`00005`, Edge `sync-judicial-casos`, Resend opcional. |
 | 2026-05-19 | Sprint 6: cola `sync_queue`, `sync-tick`/`sync-one-caso`/`health-check`, recálculo `recalc_only`, docs y crons actualizados. |
+| 2026-05-21 | Sprint 7: Telegram reemplaza Resend; webhook, digest diario, suscripciones admin, guía TELEGRAM.md. |
+| 2026-05-21 | Sprint 7 cerrado en código: alertas inmediatas agrupadas (todas las severidades); smoke manual OK; pendiente QA digest automático. |

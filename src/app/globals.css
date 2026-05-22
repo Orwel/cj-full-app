@@ -88,4 +88,18 @@ body {
     border-color: var(--sidebar-border);
     color: var(--sidebar-text-active);
   }
+
+  .bottom-nav {
+    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
+  }
+
+  .main-with-bottom-nav {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 768px) {
+    .main-with-bottom-nav {
+      padding-bottom: 2rem;
+    }
+  }
 }

@@ -23,8 +23,9 @@ Dashboard web para monitoreo automatizado de procesos judiciales radicados en la
 | Consulta por radicado vía API oficial (sin browser) | Playwright / VPS (solo contingencia documentada en [SCRAPING.md](./SCRAPING.md)) |
 | Áreas elegidas por el estudiante al registrar el caso | Inferir `area` desde el nombre del juzgado |
 | Datos de juzgado, departamento y sujetos desde la API (solo lectura / enriquecimiento) | OCR de PDFs adjuntos |
-| Roles admin y estudiante | App móvil nativa |
-| Job programado (Supabase cron) + consulta on-demand (botón) | Notificaciones push |
+| Roles admin y estudiante | — |
+| Job programado (Supabase cron) + consulta on-demand (botón) | App móvil nativa |
+| Notificaciones por **Telegram** (inmediatas + resumen diario) | — |
 | Admin: ver todos los casos y filtrar/agrupar por `area` | — |
 
 ---
@@ -103,6 +104,7 @@ Ejemplos (lista viva en código; ver [SCRAPING.md](./SCRAPING.md)):
 | Datos / Auth | **Supabase** (PostgreSQL, Auth, RLS) |
 | Integración judicial | **`fetch` HTTP** a API pública `https://consultaprocesos.ramajudicial.gov.co:448/api/v2/...` (sin API key; CORS `*` confirmado en spike) |
 | Jobs | **Supabase** (p. ej. **Scheduled Edge Functions**, `pg_cron`, o `pg_net` hacia una Edge Function del mismo proyecto). Lógica de sincronización y uso de **service role** viven en Supabase, no en un cron de Vercel. |
+| Notificaciones | **Telegram Bot API** (webhook + crons Edge) |
 | Validación | Zod |
 
 ### 6.1 Despliegue (cerrado en spike)
@@ -154,9 +156,13 @@ Las dependencias apuntan **hacia dentro**: `presentation` → `application` → 
 
 - Programación y ejecución del job **en Supabase** (Edge Function + cron y/o `pg_cron`); reintentos; pausa entre radicados en lote.
 
-### Fase 5 — Notificaciones (opcional)
+### Fase 5 — Notificaciones por Telegram
 
-- Email (p. ej. Resend) para críticas y resumen diario.
+- Bot de Telegram: vinculación desde **Perfil** (`/start <código>`).
+- Alertas **críticas/urgentes** inmediatas tras cada sync.
+- **Resumen diario** (`student-daily-digest`) con el resto de severidades.
+- Admins: suscripción manual por caso (`caso_suscriptores`).
+- Guía operativa: [TELEGRAM.md](./TELEGRAM.md).
 
 ---
 

@@ -11,6 +11,7 @@ import { AreaDonut } from '@/presentation/components/charts/AreaDonut'
 import { ActivityHeatmap } from '@/presentation/components/charts/ActivityHeatmap'
 import { Card } from '@/presentation/components/ui/Card'
 import { formatDateTimeCo } from '@/lib/labels'
+import { getMyTelegramState } from '@/lib/telegram/profile.server'
 
 export default async function DashboardHomePage() {
   const profile = await getMyProfile()
@@ -33,6 +34,7 @@ export default async function DashboardHomePage() {
 
   const criticos = casos.filter((c) => c.estadoCritico).length
   const isAdmin = profile.role === 'admin'
+  const telegram = await getMyTelegramState(profile.id)
   const recientes = [...casos]
     .sort((a, b) => {
       const ta = a.fechaUltimoScraping
@@ -48,11 +50,27 @@ export default async function DashboardHomePage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-bold text-app-text">Panel</h1>
+        <h1 className="text-xl font-bold text-app-text sm:text-2xl">Panel</h1>
         <p className="mt-1 text-app-secondary">
           Hola, {profile.full_name}. Resumen del monitoreo judicial.
         </p>
       </div>
+
+      {!telegram.linked && (
+        <Card variant="brand" className="mt-6">
+          <h2 className="font-semibold text-brand-800">Conecta Telegram</h2>
+          <p className="mt-1 text-sm text-brand-800/90">
+            Recibe alertas inmediatas de tus procesos y un resumen diario. Tarda menos de un
+            minuto.
+          </p>
+          <Link
+            href="/dashboard/perfil"
+            className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline"
+          >
+            Ir a Perfil y conectar →
+          </Link>
+        </Card>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard

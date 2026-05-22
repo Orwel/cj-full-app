@@ -18,7 +18,7 @@ export default async function EstadisticasPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-app-text">Estadísticas</h1>
+      <h1 className="text-xl font-bold text-app-text sm:text-2xl">Estadísticas</h1>
       <p className="mt-1 text-app-secondary">
         Vista analítica del consultorio para {profile.full_name}.
       </p>

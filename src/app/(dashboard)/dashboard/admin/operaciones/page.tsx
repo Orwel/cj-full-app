@@ -189,9 +189,11 @@ export default async function AdminOperacionesPage() {
 
       <p className="mt-8 text-xs text-app-muted-text">
         Los crons <strong className="text-app-secondary">enqueue-daily</strong>,{' '}
-        <strong className="text-app-secondary">sync-tick</strong> y{' '}
+        <strong className="text-app-secondary">sync-tick</strong>,{' '}
+        <strong className="text-app-secondary">student-daily-digest</strong> y{' '}
         <strong className="text-app-secondary">health-check</strong> ejecutan esta lógica en segundo
-        plano.
+        plano. Las alertas se envían por <strong className="text-app-secondary">Telegram</strong>{' '}
+        (ver <code className="rounded bg-slate-200 px-1">docs/TELEGRAM.md</code>).
       </p>
     </div>
   )
