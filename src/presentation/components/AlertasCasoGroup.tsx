@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { AlertasCasoGrupo } from '@/lib/alertas'
 import { areaLabels, formatDateTimeCo, formatFechaCo } from '@/lib/labels'
+import { EstadoProcesoBadge } from '@/presentation/components/EstadoProcesoBadge'
 import { parseSujetosProcesales } from '@/lib/sujetos-procesales'
 import { AlertaCard } from '@/presentation/components/AlertaCard'
 
@@ -23,6 +24,9 @@ export function AlertasCasoGroup({ grupo }: { grupo: AlertasCasoGrupo }) {
                 <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200">
                   {pendientes} sin leer
                 </span>
+              )}
+              {caso.estado_proceso && (
+                <EstadoProcesoBadge estado={caso.estado_proceso} />
               )}
               {caso.estado_critico && (
                 <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-800 ring-1 ring-red-200">

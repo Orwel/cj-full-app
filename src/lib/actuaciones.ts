@@ -9,6 +9,7 @@ export type ActuacionResumen = {
   fecha_registro: string | null
   con_documentos: boolean
   severidad: string
+  estado_termino?: string
   es_nueva?: boolean
 }
 

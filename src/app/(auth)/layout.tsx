@@ -30,8 +30,18 @@ export default function AuthLayout({
           Fundación Universitaria Los Libertadores
         </p>
       </div>
-      <div className="flex w-full flex-1 items-center justify-center px-4 py-12 lg:w-1/2">
-        <div className="surface-card w-full max-w-md rounded-xl p-8">{children}</div>
+      <div className="flex w-full flex-1 flex-col items-center justify-center px-4 py-8 sm:py-12 lg:w-1/2">
+        <div className="mb-6 flex justify-center lg:hidden">
+          <Image
+            src="/Logo-Los-Libertadores.png"
+            alt="Los Libertadores"
+            width={200}
+            height={48}
+            className="h-10 w-auto"
+            priority
+          />
+        </div>
+        <div className="surface-card w-full max-w-md rounded-xl p-6 sm:p-8">{children}</div>
       </div>
     </div>
   )

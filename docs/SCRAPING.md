@@ -66,7 +66,9 @@ Por cada trabajo `full_sync` en cola (un caso):
 
 Trabajos `recalc_only` en cola: solo recálculo de severidad/alertas/`estado_critico` **sin** llamar a la Rama (garantía si la API judicial falla).
 
-Al **registrar** caso nuevo: sincronizar on-demand desde la UI o esperar al enqueue diario.
+Al **registrar** caso nuevo: sincronizar on-demand desde la UI; el cron `enqueue-due` encolará la primera sonda según `next_check_at`.
+
+**Polling adaptativo:** ver [POLLING.md](./POLLING.md). Entre sondas solo se usa `NumeroRadicacion` si no hubo cambio; la cadencia depende de `polling_tier` y horario hábil Colombia (lun–vie 6–19 h).
 
 ---
 
@@ -112,9 +114,11 @@ Al **registrar** caso nuevo: sincronizar on-demand desde la UI o esperar al enqu
 | `sync-judicial-casos` | Solo encola (`enqueue_daily_sync_jobs`); compatibilidad cron antiguo |
 | `sync-tick` | Reclama cola y dispara `sync-one-caso` (respuesta &lt; 5 s) |
 | `sync-one-caso` | Un caso: `full_sync` o `recalc_only` |
-| `health-check` | Alarma de salud por correo a admins |
+| `health-check` | Alarma de salud por Telegram a admins |
+| `telegram-webhook` | Vinculación `/start <código>` (público, `?token=`) |
+| `student-daily-digest` | Resumen diario por Telegram |
 
-**Secrets Supabase:** `CRON_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_PUBLIC_URL`, opcional `HEALTH_STALE_HOURS`, `HEALTH_UNREAD_CRITICAL_HOURS`, `ADMIN_ALERT_EMAIL`.
+**Secrets Supabase:** `CRON_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET`, `APP_PUBLIC_URL`, opcional `HEALTH_STALE_HOURS`, `HEALTH_UNREAD_CRITICAL_HOURS`.
 
 ---
 
@@ -146,27 +150,40 @@ Si la API deja de ser accesible desde la red de salida del entorno donde corre e
 ## 11. Arquitectura de cola y crons (fiabilidad)
 
 ```text
-enqueue_daily (SQL, 10:00 UTC)
-  → sync_queue: full_sync + recalc_only por caso activo
+enqueue-due (SQL cada 5 min)
+  → full_sync para casos con next_check_at vencido (sin job activo)
+
+enqueue_daily (SQL, 09:00 UTC ≈ 4:00 Colombia)
+  → respaldo full_sync + recalc_only por caso activo
 
 sync-tick (HTTP cada 2 min, timeout panel 5000 ms OK)
+  → reap_stale_running_jobs(15)
   → claim_sync_queue(5)
-  → POST sync-one-caso por fila (fire-and-forget)
+  → POST sync-one-caso (pausa ~800 ms entre casos)
 
 sync-one-caso
-  → Rama (si full_sync) + recompute + scraping_logs
-  → sync_queue done | failed + backoff
+  → Rama (si full_sync) + recompute + schedule_next_caso_check
+  → Telegram alertas pendientes + sync_queue done | failed
+
+student-daily-digest (HTTP 10:00 UTC ≈ 5:00 Colombia)
+  → resumen Telegram por perfil vinculado
 
 health-check (HTTP diario)
-  → email admins si casos stale o críticas sin leer
+  → Telegram a admins si casos stale o críticas sin leer
 ```
 
-### Crons recomendados (Integrations → Cron)
+### Crons (migración `supabase/migrations/00008_cron_jobs.sql`)
+
+Aplicar con `supabase db push` o MCP. Una vez: `.\scripts\setup-cron-vault.ps1` (guarda `CRON_SECRET` en Vault).
+
+### Crons recomendados (referencia)
 
 | Nombre | Tipo | Schedule (UTC) | Target |
 |--------|------|----------------|--------|
-| `enqueue-daily` | SQL Snippet | `0 10 * * *` | `select enqueue_daily_sync_jobs();` |
+| `enqueue-due` | SQL Snippet | `*/5 * * * *` | `select enqueue_due_sync_jobs();` |
+| `enqueue-daily` | SQL Snippet | `0 9 * * *` | `select enqueue_daily_sync_jobs();` (4:00 Colombia) |
 | `sync-tick` | HTTP POST | `*/2 * * * *` | `.../functions/v1/sync-tick` + Bearer `CRON_SECRET` |
+| `student-daily-digest` | HTTP POST | `0 10 * * *` | `.../functions/v1/student-daily-digest` + Bearer (5:00 Colombia) |
 | `health-check` | HTTP POST | `0 13 * * *` | `.../functions/v1/health-check` + Bearer |
 
 Timeout HTTP del cron de Supabase: **máx. 5000 ms** en el panel. `sync-tick` solo encola invocaciones y responde al instante; el trabajo pesado ocurre en `sync-one-caso` (límite Edge ~150 s en plan Free).

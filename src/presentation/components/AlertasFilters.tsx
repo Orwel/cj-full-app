@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -29,6 +30,25 @@ function chipClass(active: boolean): string {
     : 'bg-slate-100 text-app-secondary ring-1 ring-app-border hover:bg-slate-200'
 }
 
+function FilterRow({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <div className="text-sm">
+      <span className="mb-2 block font-medium text-app-secondary sm:mb-0 sm:inline sm:mr-2">
+        {label}
+      </span>
+      <div className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:inline-flex sm:flex-wrap sm:overflow-visible sm:pb-0">
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function AlertasFilters({ filters }: { filters: AlertasFilterState }) {
   const pathname = usePathname()
   const sev = filters.severidad ?? 'todas'
@@ -36,49 +56,46 @@ export function AlertasFilters({ filters }: { filters: AlertasFilterState }) {
   const soloPendientes = Boolean(filters.pendientes)
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-app-border bg-app-surface p-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium text-app-secondary">Estado:</span>
+    <div className="flex flex-col gap-3 rounded-xl border border-app-border bg-app-surface p-3 shadow-sm sm:gap-4 sm:p-4">
+      <FilterRow label="Estado:">
         <Link
           href={buildHref(pathname, filters, { pendientes: false })}
-          className={`rounded-full px-3 py-1 ${chipClass(!soloPendientes)}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 ${chipClass(!soloPendientes)}`}
         >
           Todas
         </Link>
         <Link
           href={buildHref(pathname, filters, { pendientes: true })}
-          className={`rounded-full px-3 py-1 ${chipClass(soloPendientes)}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 ${chipClass(soloPendientes)}`}
         >
           Solo pendientes
         </Link>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium text-app-secondary">Severidad:</span>
+      </FilterRow>
+      <FilterRow label="Severidad:">
         {(['todas', 'critica', 'urgente', 'atencion', 'informativa'] as const).map((s) => (
           <Link
             key={s}
             href={buildHref(pathname, filters, { severidad: s })}
-            className={`rounded-full px-3 py-1 capitalize ${chipClass(sev === s)}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 capitalize ${chipClass(sev === s)}`}
           >
             {s === 'todas' ? 'Todas' : s === 'informativa' ? 'Novedad' : s}
           </Link>
         ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium text-app-secondary">Orden:</span>
+      </FilterRow>
+      <FilterRow label="Orden:">
         <Link
           href={buildHref(pathname, filters, { orden: 'reciente' })}
-          className={`rounded-full px-3 py-1 ${chipClass(orden === 'reciente')}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 ${chipClass(orden === 'reciente')}`}
         >
           Más recientes
         </Link>
         <Link
           href={buildHref(pathname, filters, { orden: 'termino' })}
-          className={`rounded-full px-3 py-1 ${chipClass(orden === 'termino')}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 whitespace-nowrap ${chipClass(orden === 'termino')}`}
         >
           Fin de término (próximo)
         </Link>
-      </div>
+      </FilterRow>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { assertCronAuth, createServiceAdmin } from '../_shared/cron-auth.ts'
 import { markQueueDone, markQueueFailed, shouldRetryScrapingStatus } from '../_shared/queue.ts'
 import { recomputeSeverityAlertsAndEstadoCritico } from '../_shared/recompute.ts'
-import { sendPendingStudentAlertEmails } from '../_shared/resend.ts'
+import { sendPendingTelegramAlerts } from '../_shared/telegram.ts'
+import { scheduleNextCasoCheck } from '../_shared/polling-schedule.ts'
 import {
   isPermanentScrapingFailure,
   syncJudicialCaso,
@@ -84,6 +85,12 @@ Deno.serve(async (req) => {
     if (queueRow.job_type === 'recalc_only') {
       await recomputeSeverityAlertsAndEstadoCritico(admin, casoId)
       await markQueueDone(admin, queueId)
+      await scheduleNextCasoCheck(admin, casoId, false)
+      try {
+        await sendPendingTelegramAlerts(admin)
+      } catch {
+        /* no bloquear */
+      }
       return new Response(
         JSON.stringify({ ok: true, status: 'recalc_only', casoId }),
         { headers: { 'content-type': 'application/json' } },
@@ -94,8 +101,11 @@ Deno.serve(async (req) => {
 
     if (result.status === 'success' || result.status === 'no_changes') {
       await markQueueDone(admin, queueId)
+      const hadMovement =
+        result.status === 'success' && (result.actuacionesNuevas ?? 0) > 0
+      await scheduleNextCasoCheck(admin, casoId, hadMovement)
       try {
-        await sendPendingStudentAlertEmails(admin)
+        await sendPendingTelegramAlerts(admin)
       } catch {
         /* no bloquear */
       }

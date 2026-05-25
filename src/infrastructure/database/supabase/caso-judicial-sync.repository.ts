@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { JudicialActuacion } from '@/domain/judicial/judicial.types'
-import type { Severidad } from '@/domain/services/alert-severity'
-import { severidadActuacion } from '@/domain/services/alert-severity'
+import type { EstadoTermino, Severidad } from '@/domain/services/alert-severity'
+import { recomputeCaso } from '@/domain/services/alert-severity'
 import { apiDateToSqlDate } from '@/infrastructure/scraping/date-judicial'
 
 export type ScrapingLogStatus =
@@ -18,12 +18,13 @@ type ActuacionRow = {
   anotacion: string | null
   fecha_fin_termino: string | null
   severidad: Severidad
+  estado_termino: EstadoTermino
 }
 
 type AlertaExisting = {
   actuacion_id: string | null
   leida: boolean
-  email_sent_at: string | null
+  telegram_sent_at: string | null
 }
 
 function tituloYMensajeAlerta(
@@ -31,10 +32,15 @@ function tituloYMensajeAlerta(
   actuacion: string,
   sev: Severidad,
   fechaFin: string | null,
+  estadoTermino: EstadoTermino,
 ): { titulo: string; mensaje: string } {
   const resumen =
     actuacion.length > 180 ? `${actuacion.slice(0, 177).trim()}…` : actuacion.trim()
-  const plazo = fechaFin ? `Fin de término: ${fechaFin}.` : ''
+  let plazo = fechaFin ? `Fin de término: ${fechaFin}.` : ''
+  if (estadoTermino === 'atendido') plazo = plazo ? `${plazo} Plazo atendido.` : 'Plazo atendido.'
+  if (estadoTermino === 'cerrado_proceso') {
+    plazo = plazo ? `${plazo} Expediente archivado.` : 'Expediente archivado.'
+  }
   const titulo =
     sev === 'critica'
       ? `Crítico · Actuación #${cons}`
@@ -71,28 +77,10 @@ export class CasoJudicialSyncRepository {
   ): Promise<number> {
     if (actuaciones.length === 0) return 0
 
-    const ref = new Date()
-    const now = ref.toISOString()
-
-    const { data: existingCons } = await this.admin
-      .from('actuaciones')
-      .select('cons_actuacion')
-      .eq('caso_id', casoId)
-    const maxCons = Math.max(
-      0,
-      ...(existingCons ?? []).map((r) => Number(r.cons_actuacion)),
-      ...actuaciones.map((a) => a.consActuacion),
-    )
+    const now = new Date().toISOString()
 
     const rows = actuaciones.map((a) => {
       const fechaFin = apiDateToSqlDate(a.fechaFinal)
-      const sev = severidadActuacion({
-        actuacion: a.actuacion.trim(),
-        anotacion: a.anotacion?.trim() ?? null,
-        fechaFinTermino: fechaFin,
-        referenceDate: ref,
-        evaluarPatrones: a.consActuacion === maxCons,
-      })
       return {
         caso_id: casoId,
         id_reg_actuacion: a.idRegActuacion,
@@ -108,7 +96,8 @@ export class CasoJudicialSyncRepository {
           '1970-01-01',
         con_documentos: a.conDocumentos,
         cod_regla: a.codRegla.trim(),
-        severidad: sev,
+        severidad: 'informativa' as const,
+        estado_termino: 'sin_termino' as const,
         es_nueva: true,
         scraped_at: now,
       }
@@ -124,23 +113,39 @@ export class CasoJudicialSyncRepository {
   }
 
   /**
-   * Recalcula severidad en actuaciones, filas en `alertas` y `estado_critico` del caso.
-   * Debe ejecutarse tras sync y también en `no_changes` (el plazo avanza sin novedad en API).
+   * Recalcula estados, severidad en actuaciones, alertas y flags del caso.
    */
   async recomputeSeverityAlertsAndEstadoCritico(casoId: string): Promise<void> {
     const ref = new Date()
+
+    const { data: caso, error: e0 } = await this.admin
+      .from('casos')
+      .select('ubicacion')
+      .eq('id', casoId)
+      .single()
+    if (e0) throw new Error(e0.message)
+
     const { data: acts, error: e1 } = await this.admin
       .from('actuaciones')
-      .select('id, cons_actuacion, actuacion, anotacion, fecha_fin_termino, severidad')
+      .select(
+        'id, cons_actuacion, actuacion, anotacion, fecha_fin_termino, severidad, estado_termino',
+      )
       .eq('caso_id', casoId)
 
     if (e1) throw new Error(e1.message)
     const list = (acts ?? []) as ActuacionRow[]
-    const maxCons = list.reduce((m, a) => Math.max(m, a.cons_actuacion), 0)
+
+    const computed = recomputeCaso({
+      ubicacion: (caso?.ubicacion as string | null) ?? null,
+      actuaciones: list,
+      referenceDate: ref,
+    })
+
+    const byId = new Map(computed.actuaciones.map((a) => [a.id, a]))
 
     const { data: prevAlertas, error: e2 } = await this.admin
       .from('alertas')
-      .select('actuacion_id, leida, email_sent_at')
+      .select('actuacion_id, leida, telegram_sent_at')
       .eq('caso_id', casoId)
 
     if (e2) throw new Error(e2.message)
@@ -151,37 +156,38 @@ export class CasoJudicialSyncRepository {
       }
     }
 
-    let hayCritica = false
     const actuacionIds = new Set<string>()
-    const rowsWithSev: { row: ActuacionRow; sev: Severidad }[] = []
+    const rowsWithMeta: {
+      row: ActuacionRow
+      sev: Severidad
+      estadoTermino: EstadoTermino
+    }[] = []
 
     for (const a of list) {
-      const sev = severidadActuacion({
-        actuacion: a.actuacion,
-        anotacion: a.anotacion,
-        fechaFinTermino: a.fecha_fin_termino,
-        referenceDate: ref,
-        evaluarPatrones: a.cons_actuacion === maxCons,
-      })
-      if (sev === 'critica') hayCritica = true
-      if (sev !== a.severidad) {
+      const c = byId.get(a.id)
+      if (!c) continue
+      const { severidad: sev, estado_termino: estadoTermino } = c
+
+      if (sev !== a.severidad || estadoTermino !== a.estado_termino) {
         const { error } = await this.admin
           .from('actuaciones')
-          .update({ severidad: sev })
+          .update({ severidad: sev, estado_termino: estadoTermino })
           .eq('id', a.id)
         if (error) throw new Error(error.message)
       }
-      rowsWithSev.push({ row: a, sev })
+
+      rowsWithMeta.push({ row: a, sev, estadoTermino })
       actuacionIds.add(a.id)
     }
 
-    for (const { row, sev } of rowsWithSev) {
+    for (const { row, sev, estadoTermino } of rowsWithMeta) {
       const prev = prevByActuacion.get(row.id)
       const { titulo, mensaje } = tituloYMensajeAlerta(
         row.cons_actuacion,
         row.actuacion,
         sev,
         row.fecha_fin_termino,
+        estadoTermino,
       )
       const { error } = await this.admin.from('alertas').upsert(
         {
@@ -191,7 +197,7 @@ export class CasoJudicialSyncRepository {
           titulo,
           mensaje,
           leida: prev?.leida ?? false,
-          email_sent_at: prev?.email_sent_at ?? null,
+          telegram_sent_at: prev?.telegram_sent_at ?? null,
         },
         { onConflict: 'caso_id,actuacion_id' },
       )
@@ -210,9 +216,21 @@ export class CasoJudicialSyncRepository {
 
     const { error: e3 } = await this.admin
       .from('casos')
-      .update({ estado_critico: hayCritica })
+      .update({
+        estado_critico: computed.hayCritica,
+        estado_proceso: computed.estadoProceso,
+      })
       .eq('id', casoId)
     if (e3) throw new Error(e3.message)
+  }
+
+  /** Programa la próxima sonda vía RPC (no bloquea si falla). */
+  async scheduleNextCasoCheck(casoId: string, hadMovement: boolean): Promise<void> {
+    const { error } = await this.admin.rpc('schedule_next_caso_check', {
+      p_caso_id: casoId,
+      p_had_movement: hadMovement,
+    })
+    if (error) console.error('schedule_next_caso_check:', error.message)
   }
 
   async insertScrapingLog(input: {

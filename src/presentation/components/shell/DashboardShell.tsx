@@ -3,7 +3,7 @@ import type { Profile } from '@/lib/auth/session'
 import type { SidebarCounters } from '@/lib/analytics/sidebar-counters'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
-import { MobileNavToggle } from './MobileNavToggle'
+import { BottomNavBar } from './BottomNavBar'
 
 export function DashboardShell({
   profile,
@@ -16,20 +16,21 @@ export function DashboardShell({
   counters: SidebarCounters
   children: ReactNode
 }) {
-  const sidebar = (
-    <AppSidebar profile={profile} isAdmin={isAdmin} counters={counters} />
-  )
-
   return (
-    <div className="flex min-h-screen bg-app-bg">
-      <div className="sticky top-0 hidden h-screen md:flex">{sidebar}</div>
-      <div className="content-panel flex min-h-screen min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b border-app-border bg-app-surface px-4 py-2.5 md:hidden">
-          <MobileNavToggle sidebar={sidebar} />
-          <span className="text-sm font-semibold text-app-text">Consultorio</span>
-        </div>
+    <div className="dashboard-shell flex min-h-dvh bg-app-bg md:min-h-screen">
+      <div className="hidden shrink-0 md:flex md:h-screen md:sticky md:top-0">
+        <AppSidebar profile={profile} isAdmin={isAdmin} counters={counters} />
+      </div>
+      <div className="content-panel flex min-h-0 min-w-0 flex-1 flex-col">
         <AppHeader userName={profile.full_name} />
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-4 sm:px-4 md:overflow-visible md:px-8 md:py-8">
+          {children}
+        </main>
+        <BottomNavBar
+          profile={profile}
+          isAdmin={isAdmin}
+          counters={counters}
+        />
       </div>
     </div>
   )

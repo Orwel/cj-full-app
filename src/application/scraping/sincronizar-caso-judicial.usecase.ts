@@ -9,8 +9,17 @@ import {
 
 const RADICADO_RE = /^[0-9]{23}$/
 
+import type { TelegramSyncInfo } from '@/lib/telegram/sync-hints'
+
+export type { TelegramSyncInfo }
+
 export type SincronizarCasoJudicialResult =
-  | { ok: true; status: 'success' | 'no_changes'; actuacionesNuevas: number }
+  | {
+      ok: true
+      status: 'success' | 'no_changes'
+      actuacionesNuevas: number
+      telegram?: TelegramSyncInfo
+    }
   | {
       ok: false
       status: 'invalid_format' | 'not_found' | 'error'
@@ -79,6 +88,7 @@ export class SincronizarCasoJudicialUseCase {
           fecha_ultimo_scraping: new Date().toISOString(),
         })
         await this.sync.recomputeSeverityAlertsAndEstadoCritico(caso.id)
+        await this.sync.scheduleNextCasoCheck(caso.id, false)
         await finishLog('no_changes', 0, null)
         return { ok: true, status: 'no_changes', actuacionesNuevas: 0 }
       }
@@ -131,6 +141,7 @@ export class SincronizarCasoJudicialUseCase {
 
       const insertadas = await this.sync.insertActuaciones(caso.id, nuevas)
       await this.sync.recomputeSeverityAlertsAndEstadoCritico(caso.id)
+      await this.sync.scheduleNextCasoCheck(caso.id, insertadas > 0)
       await finishLog('success', insertadas, null)
 
       return { ok: true, status: 'success', actuacionesNuevas: insertadas }

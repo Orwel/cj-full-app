@@ -26,9 +26,17 @@ type Props = {
   isAdmin: boolean
   students: Profile[]
   initial?: Caso | null
+  defaultStudentId?: string
 }
 
-export function CasoForm({ mode, action, isAdmin, students, initial }: Props) {
+export function CasoForm({
+  mode,
+  action,
+  isAdmin,
+  students,
+  initial,
+  defaultStudentId,
+}: Props) {
   const [state, formAction] = useActionState(action, null)
 
   return (
@@ -103,7 +111,7 @@ export function CasoForm({ mode, action, isAdmin, students, initial }: Props) {
             id="studentId"
             name="studentId"
             required={isAdmin}
-            defaultValue={initial?.studentId ?? ''}
+            defaultValue={initial?.studentId ?? defaultStudentId ?? ''}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-blue-600 focus:ring-2"
           >
             <option value="">— Seleccionar —</option>

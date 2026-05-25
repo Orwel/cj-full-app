@@ -8,6 +8,8 @@ export const AREAS = [
 
 export type Area = (typeof AREAS)[number]
 
+export type EstadoProceso = 'abierto' | 'archivado' | 'indeterminado'
+
 export type Caso = {
   id: string
   numeroCaso: string
@@ -31,6 +33,7 @@ export type Caso = {
   subclaseProceso: string | null
   recurso: string | null
   ubicacion: string | null
+  estadoProceso: EstadoProceso
   estadoCritico: boolean
   scrapingActivo: boolean
   fechaUltimoScraping: string | null

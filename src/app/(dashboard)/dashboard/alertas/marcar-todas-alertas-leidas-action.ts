@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function marcarTodasAlertasLeidasAction(options?: {
   severidad?: string
+  casoId?: string
 }): Promise<{ ok: boolean; count?: number; message?: string }> {
   const user = await getSessionUser()
   const profile = await getMyProfile()
@@ -18,6 +19,10 @@ export async function marcarTodasAlertasLeidasAction(options?: {
     .from('alertas')
     .select('id, caso_id, actuacion_id')
     .eq('leida', false)
+
+  if (options?.casoId) {
+    query = query.eq('caso_id', options.casoId)
+  }
 
   const severidad = options?.severidad
   if (severidad && severidad !== 'todas') {

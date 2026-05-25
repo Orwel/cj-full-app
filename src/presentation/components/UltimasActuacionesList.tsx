@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { ActuacionResumen } from '@/lib/actuaciones'
-import { diasHasta, formatFechaCo } from '@/lib/labels'
+import { diasHasta, formatFechaCo, plazoSubtext } from '@/lib/labels'
 import { SeverityBadge } from '@/presentation/components/SeverityBadge'
 
 export function UltimasActuacionesList({
@@ -66,12 +66,8 @@ export function UltimasActuacionesList({
                 {a.fecha_fin_termino ? (
                   <span>
                     Fin término: {formatFechaCo(a.fecha_fin_termino)}
-                    {dias !== null &&
-                      (dias < 0
-                        ? ` (vencido ${Math.abs(dias)}d)`
-                        : dias === 0
-                          ? ' (hoy)'
-                          : ` (${dias}d)`)}
+                    {plazoSubtext(a.estado_termino, dias) &&
+                      ` (${plazoSubtext(a.estado_termino, dias)})`}
                   </span>
                 ) : (
                   <span>Sin plazo registrado</span>

@@ -1,6 +1,5 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { apiDateToSqlDate } from './dates.ts'
-import { severidadActuacion } from './severidad.ts'
 import { recomputeSeverityAlertsAndEstadoCritico } from './recompute.ts'
 
 const BASE_URL = 'https://consultaprocesos.ramajudicial.gov.co:448/api/v2'
@@ -205,11 +204,6 @@ export async function syncJudicialCaso(
     if (exErr) throw new Error(exErr.message)
     const existentes = new Set((existRows ?? []).map((r) => Number(r.id_reg_actuacion)))
     const nuevas = todas.filter((a) => !existentes.has(a.idRegActuacion))
-    const maxCons = Math.max(
-      0,
-      ...(existRows ?? []).map((r) => Number(r.cons_actuacion)),
-      ...nuevas.map((a) => a.consActuacion),
-    )
 
     const despacho = proceso.despacho?.trim() ?? proceso.despacho
 
@@ -237,18 +231,10 @@ export async function syncJudicialCaso(
       .eq('id', caso.id)
     if (upErr) throw new Error(upErr.message)
 
-    const ref = new Date()
-    const now = ref.toISOString()
+    const now = new Date().toISOString()
     if (nuevas.length > 0) {
       const rows = nuevas.map((a) => {
         const fechaFin = apiDateToSqlDate(a.fechaFinal)
-        const sev = severidadActuacion({
-          actuacion: a.actuacion.trim(),
-          anotacion: a.anotacion?.trim() ?? null,
-          fechaFinTermino: fechaFin,
-          referenceDate: ref,
-          evaluarPatrones: a.consActuacion === maxCons,
-        })
         return {
           caso_id: caso.id,
           id_reg_actuacion: a.idRegActuacion,
@@ -264,7 +250,8 @@ export async function syncJudicialCaso(
             '1970-01-01',
           con_documentos: a.conDocumentos,
           cod_regla: (a.codRegla ?? '').trim(),
-          severidad: sev,
+          severidad: 'informativa',
+          estado_termino: 'sin_termino',
           es_nueva: true,
           scraped_at: now,
         }

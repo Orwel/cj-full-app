@@ -3,12 +3,21 @@ import { getMyProfile, listStudentProfiles } from '@/lib/auth/session'
 import { CasoForm } from '@/presentation/components/CasoForm'
 import { createCasoAction } from '../caso-actions'
 
-export default async function NewCasoPage() {
+export default async function NewCasoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ studentId?: string }>
+}) {
   const profile = await getMyProfile()
   if (!profile) return null
 
+  const sp = await searchParams
   const isAdmin = profile.role === 'admin'
   const students = isAdmin ? await listStudentProfiles() : []
+  const preselectedStudentId =
+    isAdmin && sp.studentId && students.some((s) => s.id === sp.studentId)
+      ? sp.studentId
+      : undefined
 
   return (
     <div>
@@ -37,6 +46,7 @@ export default async function NewCasoPage() {
           action={createCasoAction}
           isAdmin={isAdmin}
           students={students}
+          defaultStudentId={preselectedStudentId}
         />
       </div>
     </div>

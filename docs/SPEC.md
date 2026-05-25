@@ -23,8 +23,9 @@ Dashboard web para monitoreo automatizado de procesos judiciales radicados en la
 | Consulta por radicado vía API oficial (sin browser) | Playwright / VPS (solo contingencia documentada en [SCRAPING.md](./SCRAPING.md)) |
 | Áreas elegidas por el estudiante al registrar el caso | Inferir `area` desde el nombre del juzgado |
 | Datos de juzgado, departamento y sujetos desde la API (solo lectura / enriquecimiento) | OCR de PDFs adjuntos |
-| Roles admin y estudiante | App móvil nativa |
-| Job programado (Supabase cron) + consulta on-demand (botón) | Notificaciones push |
+| Roles admin y estudiante | — |
+| Job programado (Supabase cron) + consulta on-demand (botón) | App móvil nativa |
+| Notificaciones por **Telegram** (inmediatas + resumen diario) | — |
 | Admin: ver todos los casos y filtrar/agrupar por `area` | — |
 
 ---
@@ -88,7 +89,7 @@ Ejemplos (lista viva en código; ver [SCRAPING.md](./SCRAPING.md)):
 3. **GET** `NumeroRadicacion` → si no hay procesos, error “no encontrado”.
 4. **GET** `Detalle/{idProceso}` y **GET** `Actuaciones/{idProceso}` (paginado) → persistir caso + actuaciones; deduplicar por `id_reg_actuacion`.
 5. Motor de alertas sobre actuaciones nuevas o con término próximo.
-6. **Job diario** (programado **en Supabase**, p. ej. **Edge Function con cron** o `pg_cron` + función asociada): por cada caso activo, **GET** `NumeroRadicacion`; si `fechaUltimaActuacion` no cambió respecto a `fecha_ultima_actuacion_remota` en DB, **omitir** `Actuaciones` (ahorro de requests); si cambió, sincronizar actuaciones y alertas. **No** depende de un cron en Vercel.
+6. **Polling adaptativo** (Supabase `pg_cron`): `enqueue-due` cada 5 min encola sondas según `next_check_at`; `sync-tick` procesa la cola. Por caso: **GET** `NumeroRadicacion`; si `fechaUltimaActuacion` no cambió, **omitir** `Actuaciones`; si cambió, sincronizar y alertar. Respaldo diario + `recalc_only` vía `enqueue-daily`. Detalle: [POLLING.md](./POLLING.md).
 7. **On-demand:** mismo pipeline que el job, disparado desde UI (“Actualizar”).
 8. Dashboard: casos por área (admin), timeline de actuaciones, alertas pendientes.
 
@@ -103,6 +104,7 @@ Ejemplos (lista viva en código; ver [SCRAPING.md](./SCRAPING.md)):
 | Datos / Auth | **Supabase** (PostgreSQL, Auth, RLS) |
 | Integración judicial | **`fetch` HTTP** a API pública `https://consultaprocesos.ramajudicial.gov.co:448/api/v2/...` (sin API key; CORS `*` confirmado en spike) |
 | Jobs | **Supabase** (p. ej. **Scheduled Edge Functions**, `pg_cron`, o `pg_net` hacia una Edge Function del mismo proyecto). Lógica de sincronización y uso de **service role** viven en Supabase, no en un cron de Vercel. |
+| Notificaciones | **Telegram Bot API** (webhook + crons Edge) |
 | Validación | Zod |
 
 ### 6.1 Despliegue (cerrado en spike)
@@ -154,9 +156,13 @@ Las dependencias apuntan **hacia dentro**: `presentation` → `application` → 
 
 - Programación y ejecución del job **en Supabase** (Edge Function + cron y/o `pg_cron`); reintentos; pausa entre radicados en lote.
 
-### Fase 5 — Notificaciones (opcional)
+### Fase 5 — Notificaciones por Telegram
 
-- Email (p. ej. Resend) para críticas y resumen diario.
+- Bot de Telegram: vinculación desde **Perfil** (`/start <código>`).
+- Alertas **críticas/urgentes** inmediatas tras cada sync.
+- **Resumen diario** (`student-daily-digest`) con el resto de severidades.
+- Admins: suscripción manual por caso (`caso_suscriptores`).
+- Guía operativa: [TELEGRAM.md](./TELEGRAM.md).
 
 ---
 

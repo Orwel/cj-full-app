@@ -25,7 +25,7 @@ export function KpiCard({
         <p className="text-xs font-medium uppercase tracking-wide text-app-muted-text">
           {label}
         </p>
-        <p className="mt-2 text-3xl font-black text-app-text">{value}</p>
+        <p className="mt-2 text-2xl font-black text-app-text sm:text-3xl">{value}</p>
         <span className="mt-3 inline-block text-sm font-medium text-brand-700 group-hover:text-brand-600">
           {cta}
         </span>

@@ -1,4 +1,5 @@
 import { areaLabels, formatDateTimeCo, formatFechaCo } from '@/lib/labels'
+import { EstadoProcesoBadge } from '@/presentation/components/EstadoProcesoBadge'
 import { parseSujetosProcesales } from '@/lib/sujetos-procesales'
 import type { Caso } from '@/domain/entities/caso'
 export function CasoJudicialSummary({ caso }: { caso: Caso }) {
@@ -22,6 +23,7 @@ export function CasoJudicialSummary({ caso }: { caso: Caso }) {
     <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-lg font-semibold text-slate-900">Expediente judicial</h2>
+        <EstadoProcesoBadge estado={caso.estadoProceso} />
         {caso.estadoCritico && (
           <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-800 ring-1 ring-red-200">
             Estado crítico

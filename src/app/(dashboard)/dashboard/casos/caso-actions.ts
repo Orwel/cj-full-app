@@ -82,6 +82,7 @@ export async function createCasoAction(
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/casos')
+  revalidatePath('/dashboard/admin/estudiantes')
   redirect('/dashboard/casos')
 }
 
@@ -141,6 +142,7 @@ export async function updateCasoAction(
   }
 
   revalidatePath('/dashboard/casos')
+  revalidatePath('/dashboard/admin/estudiantes')
   revalidatePath(`/dashboard/casos/${casoId}`)
   revalidatePath(`/dashboard/casos/${casoId}/editar`)
   return { success: true }
@@ -168,5 +170,6 @@ export async function deleteCasoAction(
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/casos')
+  revalidatePath('/dashboard/admin/estudiantes')
   redirect('/dashboard/casos')
 }

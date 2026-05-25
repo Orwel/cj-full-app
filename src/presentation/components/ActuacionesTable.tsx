@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { SeverityBadge } from '@/presentation/components/SeverityBadge'
-import { formatFechaCo, diasHasta } from '@/lib/labels'
+import { formatFechaCo, diasHasta, plazoSubtext } from '@/lib/labels'
+import { EstadoTerminoBadge } from '@/presentation/components/EstadoTerminoBadge'
 
 type Row = {
   id: string
@@ -12,6 +13,7 @@ type Row = {
   fecha_fin_termino: string | null
   con_documentos: boolean
   severidad: string
+  estado_termino: string
 }
 
 export async function ActuacionesTable({
@@ -30,7 +32,7 @@ export async function ActuacionesTable({
     .from('actuaciones')
     .select(
       `id, fecha_actuacion, cons_actuacion, actuacion, anotacion,
-       fecha_inicio_termino, fecha_fin_termino, con_documentos, severidad`,
+       fecha_inicio_termino, fecha_fin_termino, con_documentos, severidad, estado_termino`,
     )
     .eq('caso_id', casoId)
     .order('cons_actuacion', { ascending: false })
@@ -70,6 +72,7 @@ export async function ActuacionesTable({
             )}
             <th className="px-3 py-2 font-medium">Fin término</th>
             {showDocumentos && <th className="px-3 py-2 font-medium">Docs.</th>}
+            <th className="px-3 py-2 font-medium">Estado término</th>
             <th className="px-3 py-2 font-medium">Severidad</th>
           </tr>
         </thead>
@@ -111,11 +114,20 @@ export async function ActuacionesTable({
                 )}
                 <td className="whitespace-nowrap px-3 py-2 text-slate-600">
                   {formatFechaCo(r.fecha_fin_termino)}
-                  {dias !== null && r.fecha_fin_termino && (
-                    <span className="mt-0.5 block text-xs text-slate-500">
-                      {dias < 0 ? `Vencido ${Math.abs(dias)}d` : dias === 0 ? 'Hoy' : `${dias}d`}
+                  {r.fecha_fin_termino && (
+                    <span
+                      className={`mt-0.5 block text-xs ${
+                        r.estado_termino === 'vencido_sin_respuesta'
+                          ? 'font-semibold text-red-700'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      {plazoSubtext(r.estado_termino, dias) ?? '—'}
                     </span>
                   )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  <EstadoTerminoBadge estado={r.estado_termino} />
                 </td>
                 {showDocumentos && (
                   <td className="whitespace-nowrap px-3 py-2 text-slate-600">

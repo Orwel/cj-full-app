@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Area, Caso, CreateCasoInput, UpdateCasoInput } from '@/domain/entities/caso'
+import type {
+  Area,
+  Caso,
+  CreateCasoInput,
+  EstadoProceso,
+  UpdateCasoInput,
+} from '@/domain/entities/caso'
 import type { ICasoRepository } from '@/domain/repositories/caso-repository'
 
 type CasoRow = {
@@ -25,6 +31,7 @@ type CasoRow = {
   subclase_proceso: string | null
   recurso: string | null
   ubicacion: string | null
+  estado_proceso: EstadoProceso
   estado_critico: boolean
   scraping_activo: boolean
   fecha_ultimo_scraping: string | null
@@ -56,6 +63,7 @@ function mapRow(row: CasoRow): Caso {
     subclaseProceso: row.subclase_proceso,
     recurso: row.recurso,
     ubicacion: row.ubicacion,
+    estadoProceso: row.estado_proceso ?? 'indeterminado',
     estadoCritico: row.estado_critico,
     scrapingActivo: row.scraping_activo,
     fechaUltimoScraping: row.fecha_ultimo_scraping,

@@ -1,5 +1,5 @@
 import { assertCronAuth, createServiceAdmin } from '../_shared/cron-auth.ts'
-import { sendAdminHealthEmail } from '../_shared/resend.ts'
+import { escapeHtml, sendAdminTelegram } from '../_shared/telegram.ts'
 
 function hoursEnv(name: string, fallback: number): number {
   const n = Number(Deno.env.get(name))
@@ -74,43 +74,35 @@ Deno.serve(async (req) => {
       }
     })
 
-    let emailsSent = 0
+    let telegramSent = 0
     if (staleCasos.length > 0 || unreadCriticas.length > 0) {
-      const staleList =
+      const staleLines =
         staleCasos.length === 0
-          ? '<p>Ninguno.</p>'
-          : `<ul>${staleCasos
+          ? 'Ninguno.'
+          : staleCasos
               .map(
                 (c) =>
-                  `<li><strong>${c.numero_caso}</strong> · ${c.radicado_judicial}</li>`,
+                  `• <b>${escapeHtml(c.numero_caso)}</b> · <code>${escapeHtml(c.radicado_judicial)}</code>`,
               )
-              .join('')}</ul>`
+              .join('\n')
 
-      const unreadList =
+      const unreadLines =
         unreadCriticas.length === 0
-          ? '<p>Ninguna.</p>'
-          : `<ul>${unreadCriticas
+          ? 'Ninguna.'
+          : unreadCriticas
               .map(
                 (a) =>
-                  `<li><strong>${a.numero_caso}</strong> · ${a.radicado_judicial}: ${a.titulo}</li>`,
+                  `• <b>${escapeHtml(a.numero_caso)}</b>: ${escapeHtml(a.titulo)}`,
               )
-              .join('')}</ul>`
+              .join('\n')
 
-      const html = `
-        <h2>Alarma de salud — Consultorio Jurídico</h2>
-        <p>Revisión automática del sistema de monitoreo.</p>
-        <h3>Casos sin sincronización exitosa (últimas ${staleHours} h)</h3>
-        ${staleList}
-        <h3>Alertas críticas sin leer (más de ${unreadHours} h)</h3>
-        ${unreadList}
-        <p><em>Generado: ${new Date().toISOString()}</em></p>
-      `
+      const html =
+        `<b>Alarma de salud — Consultorio</b>\n\n` +
+        `<b>Casos sin sync exitosa (${staleHours}h)</b>\n${staleLines}\n\n` +
+        `<b>Críticas sin leer (&gt;${unreadHours}h)</b>\n${unreadLines}\n\n` +
+        `<i>${new Date().toISOString()}</i>`
 
-      emailsSent = await sendAdminHealthEmail(
-        admin,
-        `[Consultorio] Alarma de salud: ${staleCasos.length} caso(s), ${unreadCriticas.length} alerta(s) crítica(s)`,
-        html,
-      )
+      telegramSent = await sendAdminTelegram(admin, html)
     }
 
     return new Response(
@@ -118,7 +110,7 @@ Deno.serve(async (req) => {
         ok: true,
         staleCasos: staleCasos.length,
         unreadCriticas: unreadCriticas.length,
-        emailsSent,
+        telegramSent,
         staleHours,
         unreadHours,
       }),

@@ -9,7 +9,9 @@ export function TableShell({
 }) {
   return (
     <div className={`surface-card overflow-hidden rounded-xl ${className}`}>
-      {children}
+      <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+        {children}
+      </div>
     </div>
   )
 }

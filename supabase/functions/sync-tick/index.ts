@@ -24,6 +24,12 @@ Deno.serve(async (req) => {
 
   try {
     const admin = createServiceAdmin()
+
+    const { data: reaped, error: reapErr } = await admin.rpc('reap_stale_running_jobs', {
+      p_max_age_minutes: 15,
+    })
+    if (reapErr) throw new Error(reapErr.message)
+
     const { data: claimed, error } = await admin.rpc('claim_sync_queue', {
       p_limit: batchSize,
     })
@@ -31,7 +37,8 @@ Deno.serve(async (req) => {
     if (error) throw new Error(error.message)
     const rows = claimed ?? []
 
-    for (const row of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
       const payload = JSON.stringify({ casoId: row.caso_id, queueId: row.id })
       fetch(oneCasoUrl, {
         method: 'POST',
@@ -43,12 +50,16 @@ Deno.serve(async (req) => {
       }).catch(() => {
         /* fire-and-forget; sync-one-caso actualiza sync_queue */
       })
+      if (i < rows.length - 1) {
+        await new Promise((r) => setTimeout(r, 800))
+      }
     }
 
     return new Response(
       JSON.stringify({
         ok: true,
         claimed: rows.length,
+        reaped: reaped ?? 0,
         queueIds: rows.map((r: { id: string }) => r.id),
       }),
       { headers: { 'content-type': 'application/json' } },

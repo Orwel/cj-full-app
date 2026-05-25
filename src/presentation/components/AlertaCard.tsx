@@ -1,5 +1,6 @@
 import type { ActuacionResumen } from '@/lib/actuaciones'
-import { diasHasta, formatDateTimeCo, formatFechaCo } from '@/lib/labels'
+import { diasHasta, formatDateTimeCo, formatFechaCo, plazoSubtext } from '@/lib/labels'
+import { EstadoTerminoBadge } from '@/presentation/components/EstadoTerminoBadge'
 import type { Area } from '@/domain/entities/caso'
 import { MarcarAlertaLeidaButton } from '@/presentation/components/MarcarAlertaLeidaButton'
 import { SeverityBadge } from '@/presentation/components/SeverityBadge'
@@ -26,6 +27,7 @@ export type AlertaCardData = {
     sujetos_procesales: string | null
     ubicacion: string | null
     estado_critico: boolean
+    estado_proceso: string
     fecha_ultimo_scraping: string | null
     fecha_ultima_actuacion_remota: string | null
   } | null
@@ -111,17 +113,21 @@ export function AlertaCard({
               <dt className="text-xs text-slate-500">Fin término</dt>
               <dd className={plazoUrgencyClass(dias)}>
                 {formatFechaCo(act.fecha_fin_termino)}
-                {dias !== null && (
+                {act.fecha_fin_termino && (
                   <span className="ml-1 text-xs">
-                    {dias < 0
-                      ? `(vencido ${Math.abs(dias)}d)`
-                      : dias === 0
-                        ? '(hoy)'
-                        : `(${dias}d)`}
+                    ({plazoSubtext(act.estado_termino, dias) ?? '—'})
                   </span>
                 )}
               </dd>
             </div>
+            {act.estado_termino && act.estado_termino !== 'sin_termino' && (
+              <div>
+                <dt className="text-xs text-slate-500">Estado del plazo</dt>
+                <dd>
+                  <EstadoTerminoBadge estado={act.estado_termino} />
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-xs text-slate-500">Documentos</dt>
               <dd className="text-slate-800">

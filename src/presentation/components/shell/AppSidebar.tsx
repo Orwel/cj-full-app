@@ -59,6 +59,9 @@ export function AppSidebar({
                 Alertas
               </SidebarNavLink>
             </li>
+            <li>
+              <SidebarNavLink href="/dashboard/perfil">Perfil</SidebarNavLink>
+            </li>
           </ul>
         </div>
 
@@ -81,6 +84,11 @@ export function AppSidebar({
               Administración
             </p>
             <ul className="space-y-0.5">
+              <li>
+                <SidebarNavLink href="/dashboard/admin/estudiantes">
+                  Estudiantes
+                </SidebarNavLink>
+              </li>
               <li>
                 <SidebarNavLink href="/dashboard/admin/operaciones">
                   Operaciones
