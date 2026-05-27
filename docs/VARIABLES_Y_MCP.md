@@ -1,10 +1,27 @@
 # Variables, MCP y dónde va cada cosa
 
-## MCP de Supabase en Cursor (plugin)
+## MCP de Supabase en Cursor (proyecto Consultorio)
 
-- Vive **solo en Cursor** (Settings → Tools & MCP → supabase, 29 tools).
-- **No aparece en Vercel** ni en Supabase Dashboard: es para que el asistente consulte BD, logs y functions.
-- No reemplaza configurar crons ni secrets en Supabase.
+Proyecto Supabase: **`tiodnudjbwouwhffboam`**  
+URL API: `https://tiodnudjbwouwhffboam.supabase.co`
+
+### Configuración en el repo
+
+El archivo [`.cursor/mcp.json`](../.cursor/mcp.json) enlaza el asistente **solo** a ese proyecto (modo `project_ref`). Plantilla: [`.cursor/mcp.json.example`](../.cursor/mcp.json.example).
+
+Primera vez en Cursor:
+
+1. Abre **Settings → Tools & MCP** y confirma que el servidor **supabase** aparece activo.
+2. Si pide login, autoriza con la cuenta de Supabase que tiene acceso al proyecto del consultorio.
+3. Recarga la ventana (`Ctrl+Shift+P` → *Reload Window*) si no ves las herramientas.
+
+Comprobar: pide al asistente «lista las tablas de la base de datos con MCP».
+
+### Qué hace y qué no
+
+- Vive **solo en Cursor**: consulta BD, logs, Edge Functions y migraciones desde el chat.
+- **No aparece en Vercel** ni sustituye secrets/crons en Supabase Dashboard.
+- Con `project_ref` el MCP no puede ver otros proyectos de tu cuenta.
 
 ## Tres lugares para la URL pública
 

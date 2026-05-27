@@ -150,8 +150,8 @@ Si la API deja de ser accesible desde la red de salida del entorno donde corre e
 ## 11. Arquitectura de cola y crons (fiabilidad)
 
 ```text
-enqueue-due (SQL cada 5 min)
-  → full_sync para casos con next_check_at vencido (sin job activo)
+enqueue-due (SQL cada 5 min) + enqueue-business-hourly (lun–vie)
+  → full_sync si next_check_at vencido O sin scraping > 2 h en horario hábil CO
 
 enqueue_daily (SQL, 09:00 UTC ≈ 4:00 Colombia)
   → respaldo full_sync + recalc_only por caso activo
@@ -180,7 +180,8 @@ Aplicar con `supabase db push` o MCP. Una vez: `.\scripts\setup-cron-vault.ps1` 
 
 | Nombre | Tipo | Schedule (UTC) | Target |
 |--------|------|----------------|--------|
-| `enqueue-due` | SQL Snippet | `*/5 * * * *` | `select enqueue_due_sync_jobs();` |
+| `enqueue-due` | SQL Snippet | `*/5 * * * *` | `select enqueue_due_sync_jobs(2);` |
+| `enqueue-business-hourly` | SQL Snippet | `15 11-23 * * 1-5` | `select enqueue_due_sync_jobs(2);` |
 | `enqueue-daily` | SQL Snippet | `0 9 * * *` | `select enqueue_daily_sync_jobs();` (4:00 Colombia) |
 | `sync-tick` | HTTP POST | `*/2 * * * *` | `.../functions/v1/sync-tick` + Bearer `CRON_SECRET` |
 | `student-daily-digest` | HTTP POST | `0 10 * * *` | `.../functions/v1/student-daily-digest` + Bearer (5:00 Colombia) |

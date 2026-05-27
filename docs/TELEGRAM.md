@@ -81,7 +81,8 @@ Definidos en **`supabase/migrations/00008_cron_jobs.sql`** (`cron.schedule` + `p
 
 | Nombre | Schedule (UTC) | Target |
 |--------|----------------|--------|
-| `enqueue-due` | `*/5 * * * *` | SQL: `select enqueue_due_sync_jobs();` (sondas según `next_check_at`) |
+| `enqueue-due` | `*/5 * * * *` | SQL: `select enqueue_due_sync_jobs(2);` (vencidos + sin sync >2 h en horario hábil) |
+| `enqueue-business-hourly` | `15 11-23 * * 1-5` | Mismo encolado (~06:15–18:15 Colombia) |
 | `enqueue-daily` | `0 9 * * *` | SQL: `select enqueue_daily_sync_jobs();` (**4:00** Colombia, respaldo + recalc) |
 | `sync-tick` | `*/2 * * * *` | Edge `sync-tick` (Bearer desde Vault) |
 | `student-daily-digest` | `0 10 * * *` | Edge digest (**5:00** Colombia) |
